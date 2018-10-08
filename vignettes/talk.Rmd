@@ -1,0 +1,71 @@
+---
+title: Reproducible Science with R
+author: Alain Danet 
+date: \today
+institute: BioDICée Lab
+output: binb::metropolis
+---
+
+```{r, eval = TRUE, echo = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = FALSE,
+  fig.dim = c(10, 7) #width, height
+  )
+
+```
+
+# Reproducible science 
+
+## Context
+
+- Crisis of replication
+- Sophistication of methods 
+
+# Set up a package compodium
+
+## What do you need ?
+
+
+## Resources 
+
+
+## Architecture
+
+Image du compodium
+
+- [R packages book](http://r-pkgs.had.co.nz/) 
+- [Compodium](../papers/Marwick et al. - 2018 - Packaging Data Analytical
+  Work Reproducibly Using .pdf)
+
+
+## General set up 
+
+```{r}
+library(devtools) # Option
+create("pkgname")
+
+```
+
+What are the files created ?
+
+##  
+
+## R
+
+
+## Data
+
+```{r}
+
+```
+
+## Test
+
+```{r}
+test()
+```
+
+## Vignettes
+
+
