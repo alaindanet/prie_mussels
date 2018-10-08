@@ -12,6 +12,7 @@ use_travis()
 use_package_doc()
 use_cran_comments()
 use_readme_rmd()
+use_mit_license()
 
 #To build metropolis talk
 install.packages("binb")
