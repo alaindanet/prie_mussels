@@ -24,7 +24,7 @@ container with R, RStudio and several packages that we will use. See
 more on [Rocker](https://github.com/rocker-org/rocker).
 
 ``` bash
-docker run --rm -p 8787:8787 rocker/verse
+docker run -e PASSWORD=<YOUR_PASS> --rm -p 8787:8787 rocker/verse
 ```
 
 Once you have downloaded it, you can open an Rstudio session in your web
@@ -37,7 +37,7 @@ tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.ht
 #### Pointing a Docker session to your project
 
 ``` bash
-docker run --rm -p 8787:8787 -v /path_to_your_project/project_directory:/home/rstudio/project_directory rocker/verse
+docker run -e PASSWORD=<YOUR_PASS> --rm -p 8787:8787 -v /path_to_your_project/project_directory:/home/rstudio/project_directory rocker/verse
 ```
 
 #### Commit inside a docker container
