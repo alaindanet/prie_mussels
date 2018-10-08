@@ -11,10 +11,11 @@ reproducible.
 Prerequisites
 -------------
 
-You need to have the following softwares: -
-[Git](https://git-scm.com/downloads) to version your work -
-[Docker](https://docs.docker.com/install/) to ensure that we work in the
-same container
+You need to have the following softwares:
+
+-   [Git](https://git-scm.com/downloads) to version your work
+-   [Docker](https://docs.docker.com/install/) to ensure that we work in
+    the same container
 
 ### Install Docker
 
