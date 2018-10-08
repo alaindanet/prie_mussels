@@ -47,6 +47,31 @@ browser. On Linux system, it will be at
 will be replaced by your ip address. Your will find it when you launch the
 Docker Quickstart Terminal. Please see [this tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html).
 
+#### Pointing a Docker session to your project 
+
+```{bash}
+docker run --rm -p 8787:8787 -v /path_to_your_project/project_directory:/home/rstudio/project_directory rocker/verse
+```
+
+
+#### Commit inside a docker container
+
+While running R in a docker container, git will not know you since you are not
+in your system environment.
+
+If you run your Docker session which points to a git repository, you can
+configure it locally. Your local git config will be available in the Docker
+environment.    
+
+In your project root, you can run:
+```{bash}
+git config user.name "FirstName LastName"
+git config user.email "MY_NAME@example.com"
+
+```
+
+You can check the local set up: `cat .git/config`
+
 
 ## Documentation
 
