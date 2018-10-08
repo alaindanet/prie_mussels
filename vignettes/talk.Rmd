@@ -69,3 +69,14 @@ test()
 ## Vignettes
 
 
+# Docker 
+
+## Build
+
+You can build the image from the `Dockerfile`
+
+```{bash}
+docker build -t my-r-image .
+```
+
+
