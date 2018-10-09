@@ -23,9 +23,17 @@ You need to have the following softwares:
 -   [For Linux](https://docs.docker.com/docker-for-windows/install/)
 -   [Mac OS](https://docs.docker.com/docker-for-mac/install/)
 
+\#\#\#\# Check your install
+
+``` bash
+docker run hello-world
+```
+
+#### Download an image and run it
+
 Once you have docker, please run the following command. You will get a
-container with R, RStudio and several packages that we will use. See
-more on [Rocker](https://github.com/rocker-org/rocker).
+container with R, RStudio and several useful packages (see more on
+[Rocker](https://github.com/rocker-org/rocker)).
 
 ``` bash
 docker run -e PASSWORD=<YOUR_PASS> --rm -p 8787:8787 rocker/verse
@@ -36,7 +44,8 @@ browser. On Linux system, it will be at <http://localhost:8787/>. On
 other systems, `localhost` will be replaced by your ip address. Your
 will find it when you launch the Docker Quickstart Terminal. Please see
 [this
-tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html).
+tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html)
+for more details.
 
 #### Pointing a Docker session to your project
 
