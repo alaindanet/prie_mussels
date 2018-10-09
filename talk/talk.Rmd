@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
   eval = FALSE,
   fig.dim = c(10, 7) #width, height
   )
+setwd(dirname(getwd()))
 
 ```
 
@@ -26,6 +27,10 @@ knitr::opts_chunk$set(
 - Crisis of replication
 - Sophistication of methods 
 
+## Journal requirements
+
+
+
 # Set up a package compodium
 
 ## What do you need ?
@@ -33,45 +38,285 @@ knitr::opts_chunk$set(
 
 ## Resources 
 
+- [R packages book](http://r-pkgs.had.co.nz/) 
 
 ## Architecture
 
 Image du compodium
 
-- [R packages book](http://r-pkgs.had.co.nz/) 
 - [Compodium](../papers/Marwick et al. - 2018 - Packaging Data Analytical
   Work Reproducibly Using .pdf)
 
+## Prepare your template directory
+
+```{bash}
+mkdir template 
+cd template
+git init
+git config user.name "FirstName LastName"
+git config user.email "MY_NAME@example.com"
+```
 
 ## General set up 
 
 ```{r}
-library(devtools) # Option
+library(devtools)
+
+options(devtools.name = "Carl Boettiger", 
+	devtools.desc.author = "person('Carl', 'Boettiger',
+	email='cboettig@gmail.com', role = c('aut', 'cre'))",
+devtools.desc.license = "MIT + file LICENSE")
+
 create("pkgname")
 
 ```
 
 What are the files created ?
 
-##  
+> - `DESCRIPTION`:  
+> - `NAMESPACE`:
+> - `R/`:
+
+## Description 
+
+```{bash, eval = TRUE}
+head ../DESCRIPTION 
+```
+- [Package deSolve](https://cran.r-project.org/web/packages/deSolve/index.html)
+
+## NAMESPACE
+
+```{bash, eval = TRUE}
+head ../NAMESPACE
+```
+Not important for us
+
+## Licence 
+
+- [A licence guide](https://opensource.org/)
+
+```{r}
+use_gpl3_license()
+
+```
+
+## A README
+
+
+```{r}
+use_readme_rmd()
+```
+- Write a short description and `knit`!
+
+OR
+
+```{r}
+use_readme_md()
+```
+
 
 ## R
 
+It is the place where your functions live! But not your analysis worflow
+
+```{r}
+# Good
+fit_models.R
+utility_functions.R
+
+# Bad
+foo.r
+stuff.r
+```
+
+## Object names 
+
+> - Why is this naming scheme bad  ?
+
+```{r}
+first_day_of_the_month
+DayOne
+dayone
+djm1
+```
+> - Better `day_one` or `day_one`
+> - Be consistent
+> - Ex: name for object and variables and verbs for functions
+> - [See more in the R packages book](http://r-pkgs.had.co.nz/r.html#style)
+
+## Test and document your functions
+
+```{r}
+use_package_doc()
+use_testthat()
+```
+
+## Report your analysis
+
+```{r}
+use_vignette("intro")
+```
+
+## So far
+
+You have a versionned repository containing:
+
+>  - `DESCRIPTION` and `README` to describe your work
+>  - `R/` to host your functions
+>  - `man/` to document your functions
+>  - `tests/` to test your functions
+>  - `vignettes/` to describe your results
+>  - A `LICENCE` for your work 
+
+## Let's commit your changes
+
+```{r, engine = "bash"}
+git status
+git add --all 
+git commit -m "setup of a research template"
+```
+
+# Let's play a bit
+
+## Change of branch 
+
+```{r, engine = "bash"}
+git branch testing 
+git checkout testing 
+```
+
+## First function
+
+```{r, echo = FALSE, eval = TRUE}
+library(ggplot2)
+```
+
+
+```{r, eval = TRUE}
+make_planet <- function() {
+
+  ggplot(data.frame(x = 0, y = 0), aes(x, y)) + 
+    geom_point(size = 100, color = "red")
+}
+```
+In your terminal:
+
+```{r, eval = TRUE}
+load_all()
+```
+
+##
+
+```{r, eval = TRUE}
+make_planet()
+
+```
+
+## Second function
+
+```{r, eval = TRUE}
+make_planet_great_again <- function() {
+
+  ggplot(data.frame(x = 0, y = 0), aes(x, y)) + 
+    geom_point(size = 100, color = "green")
+}
+
+```
+In your terminal:
+
+```{r, eval = TRUE}
+load_all()
+```
+
+##
+
+```{r, eval = TRUE}
+make_planet_great_again()
+
+```
+
+## DRY principle
+
+> [Do not Repeat Yourself](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)
+
+```{r, eval = TRUE}
+make_color_planet <- function(color = "red") {
+
+  ggplot2::ggplot(data.frame(x = 0, y = 0), aes(x, y)) + 
+    ggplot2::geom_point(size = 100, color = color)
+}
+
+```
 
 ## Data
 
 ```{r}
+data(iris)
+head(iris)
 
 ```
 
-## Test
+Where do you place data ?
+
+##
 
 ```{r}
-test()
+myiris <- iris 
+use_data(myiris)
+load_all()
+data(myiris)
 ```
 
-## Vignettes
+## Raw data 
 
+- e.g. CSV file 
+- To be stored with scripts that generate cleaned dataset
+
+```{r}
+use_data_raw()
+```
+
+# Test
+
+## Write a test 
+
+> Whenever you are tempted to type something into a print statement or a debugger
+> expression, write it as a test instead. — Martin Fowler
+
+```{r}
+test_that("squaring works", {
+  expect_equal(square_it(2), 4)
+})
+```
+
+## Write the function
+
+- In the `R/` folder:
+
+```{r}
+square_it <- function(x) {
+    square <- x * x
+    return(square)
+}
+```
+
+> - Now test with: `test()`
+
+ 
+## Document your functions 
+
+# Vignettes
+
+## Goal
+
+- Describe your analysis
+  - Mix code and text   
+
+It is a very convenient way to report your results and write draft
+
+## Exemple
+
+Go to vignette example: `vignettes/intro.Rmd`
 
 # Docker 
 
