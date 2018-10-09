@@ -5,7 +5,7 @@ Status](https://travis-ci.com/alaindanet/reproducibleR_workshop.svg?branch=maste
 ReproducibleR
 =============
 
-The goal of ReproducibleR is to learn how to use R to make your analysis
+The goal of ReproducibleR is to help you to make your analysis
 reproducible.
 
 Prerequisites
@@ -19,13 +19,15 @@ You need to have the following softwares:
 
 ### Install Git
 
+-   [Download page for all platform](https://git-scm.com/downloads)
+
 ### Install Docker
 
 -   [For windows](https://docs.docker.com/docker-for-windows/install/)
 -   [For Linux](https://docs.docker.com/docker-for-windows/install/)
 -   [Mac OS](https://docs.docker.com/docker-for-mac/install/)
 
-\#\#\#\# Check your install
+#### Check your install
 
 ``` bash
 docker run hello-world
@@ -49,7 +51,8 @@ will find it when you launch the Docker Quickstart Terminal. Please see
 tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html)
 for more details.
 
-\#\# Use Docker
+Use Docker
+----------
 
 ### Pointing a Docker session to your project
 

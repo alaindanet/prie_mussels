@@ -38,8 +38,7 @@ You need to have the following softwares:
 - [For Linux](https://docs.docker.com/docker-for-windows/install/)
 - [Mac OS](https://docs.docker.com/docker-for-mac/install/)
 
-
-#### Check your install
+#### Check your install
 
 
 ```{bash}
@@ -64,9 +63,7 @@ Docker Quickstart Terminal. Please see [this
 tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html)
 for more details.
 
-
-## Use Docker
-
+## Use Docker
 
 ### Pointing a Docker session to your project 
 
