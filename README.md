@@ -17,6 +17,8 @@ You need to have the following softwares:
 -   [Docker](https://docs.docker.com/install/) to ensure that we work in
     the same container
 
+### Install Git
+
 ### Install Docker
 
 -   [For windows](https://docs.docker.com/docker-for-windows/install/)
@@ -47,13 +49,15 @@ will find it when you launch the Docker Quickstart Terminal. Please see
 tutorial](http://ropenscilabs.github.io/r-docker-tutorial/02-Launching-Docker.html)
 for more details.
 
-#### Pointing a Docker session to your project
+\#\# Use Docker
+
+### Pointing a Docker session to your project
 
 ``` bash
 docker run -e PASSWORD=<YOUR_PASS> --rm -p 8787:8787 -v /path_to_your_project/project_directory:/home/rstudio/project_directory rocker/verse
 ```
 
-#### Commit inside a docker container
+### Commit with git inside a docker container
 
 While running R in a docker container, git will not know you since you
 are not in your system environment.
