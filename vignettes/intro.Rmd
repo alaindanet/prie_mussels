@@ -12,54 +12,106 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = TRUE
 )
+library(datasets)
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+```{r}
+library(tidyverse)
+library(magrittr)
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+data(iris)
+head(iris)
+```
 
-## Vignette Info
+```{r}
+# I do not like uppercase:
+iris %<>% rename_all(tolower)
+head(iris)
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+# I prefer tibble format:
+iris %<>% as.tibble 
+iris
 
-## Styles
+```
 
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
 
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
+We want to compute the mean value for each variable for each species. We will
+use the functions of the `dplyr` package.
+
+```{r}
+iris_species <- iris %>%
+  gather(variable, value, sepal.length:petal.width) %>%
+  group_by(species, variable) %>%
+  summarise(avg = mean(value)) %>%
+  spread(variable, avg)
+```
+
+## Tables
+
+You can generate tables in markdown with `kable()` but you can also generate it
+in LaTeX.
+
+```{r}
+knitr::kable(iris_species)
+
+```
+
+```{r}
+library(xtable)
+xtable(iris_species)
+
+```
+
+Let's tweak a bit the table by removing row numbering, reduce digit number,
+etc... See `r ?xtable` and `r ?print.xtable`
+
+
+```{r}
+iris_species_xtable <- xtable(iris_species, 
+  caption = "Average flower phenology (in cm) of different species of the
+  \textit{Iris} genus.",
+  label = "tab:iris_species",
+  align = c("c","l", "|", "r", "r", "r", "r"),
+  digits = 1
+  )
+print(iris_species_xtable, include.rownames = FALSE)
+
+```
 
 ## Figures
 
-The figure sizes have been customised so that you can easily put two images side-by-side. 
 
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+```{r}
+iris_petall <- select(iris, species, petal.length)
+p <- ggplot(iris_petall, aes(y = petal.length, x = species)) + 
+  geom_violin()
+p
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+This plot is not ready to be put in a paper (grey area, bad axes, font not
+ajusted). The package `cowplot` load a theme with better default. See the
+cowplot
+[vignette](https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html).
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+```{r}
+library(cowplot)
+p
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
 ```
 
-Also a quote using `>`:
+You can also arrange plots in a grid: 
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+```{r}
+p2 <- ggplot(mpg, aes(x = cty, y = hwy, colour = factor(cyl))) + 
+  geom_point(size=2.5)
+p2
+
+```
+```{r, fig.dim = c(7, 5)}
+plot_grid(p, p2, labels = "AUTO")
+```
+
+

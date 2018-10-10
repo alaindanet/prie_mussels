@@ -16,20 +16,10 @@ knitr::opts_chunk$set(
   eval = FALSE,
   fig.dim = c(10, 7) #width, height
   )
+library(devtools)
 setwd(dirname(getwd()))
 
 ```
-
-# Reproducible science 
-
-## Context
-
-- Crisis of replication
-- Sophistication of methods 
-
-## Journal requirements
-
-
 
 # Set up a package compodium
 
@@ -67,7 +57,7 @@ options(devtools.name = "Carl Boettiger",
 	email='cboettig@gmail.com', role = c('aut', 'cre'))",
 devtools.desc.license = "MIT + file LICENSE")
 
-create("pkgname")
+setup() #See also create()
 
 ```
 
@@ -113,6 +103,8 @@ OR
 ```{r}
 use_readme_md()
 ```
+
+- [An example](https://github.com/spatial-ews/spatialwarnings/blob/master/README.md)
 
 
 ## R
@@ -267,7 +259,7 @@ load_all()
 data(myiris)
 ```
 
-## Raw data 
+## Raw data
 
 - e.g. CSV file 
 - To be stored with scripts that generate cleaned dataset
@@ -305,18 +297,37 @@ square_it <- function(x) {
  
 ## Document your functions 
 
+
+```{r}
+#' Square a number.
+#'
+#' @param x A number.
+#' @return \code{x} squared. 
+#' @examples
+#' square_it(2)
+#' square_it(4)
+square_it <- function(x) {
+    square <- x * x
+    return(square)
+}
+```
+Run `document()`
+
+
 # Vignettes
 
 ## Goal
 
-- Describe your analysis
-  - Mix code and text   
+> - Describe your analysis
+> - Generate your figures
+> - Generate your tables 
 
 It is a very convenient way to report your results and write draft
 
 ## Exemple
 
 Go to vignette example: `vignettes/intro.Rmd`
+
 
 # Docker 
 

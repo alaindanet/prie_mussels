@@ -96,4 +96,5 @@ You can check the local set up: `cat .git/config`
 
 - Using Docker with R: [Ropenscilabs course](http://ropenscilabs.github.io/r-docker-tutorial/)
 - R compodium: [Example from Carl Boettiger](https://github.com/cboettig/template)
+- Compodium package: [rrtools](https://github.com/benmarwick/rrtools)
 
