@@ -21,7 +21,7 @@ setwd(dirname(getwd()))
 
 ```
 
-# Set up a package compodium
+# Set up a package compendium
 
 ## What do you need ?
 
@@ -32,9 +32,7 @@ setwd(dirname(getwd()))
 
 ## Architecture
 
-Image du compodium
-
-- [Compodium](../papers/Marwick et al. - 2018 - Packaging Data Analytical
+- [Compendium](../papers/Marwick et al. - 2018 - Packaging Data Analytical
   Work Reproducibly Using .pdf)
 
 ## Prepare your template directory
