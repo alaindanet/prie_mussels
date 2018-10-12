@@ -78,7 +78,8 @@ git config user.email "MY_NAME@example.com"
 
 You can check the local set up: `cat .git/config`
 
-## Usage
+Usage
+-----
 
 ### Clone the repository
 
