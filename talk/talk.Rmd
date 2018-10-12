@@ -50,9 +50,9 @@ git config user.email "MY_NAME@example.com"
 ```{r}
 library(devtools)
 
-options(devtools.name = "Carl Boettiger", 
-	devtools.desc.author = "person('Carl', 'Boettiger',
-	email='cboettig@gmail.com', role = c('aut', 'cre'))",
+options(devtools.name = "Alain Danet", 
+	devtools.desc.author = "person('Alain', 'Danet',
+	email='my_name@domain.fr', role = c('aut', 'cre'))",
 devtools.desc.license = "MIT + file LICENSE")
 
 setup() #See also create()

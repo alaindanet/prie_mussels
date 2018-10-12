@@ -78,10 +78,48 @@ git config user.email "MY_NAME@example.com"
 
 You can check the local set up: `cat .git/config`
 
-Documentation
--------------
+\#\# Usage
+
+### Clone the repository
+
+``` bash
+git clone https://github.com/alaindanet/reproducibleR_workshop.git dir_name
+```
+
+\#\#\# Compile the presentation
+
+Open the file `talk/talk.Rmd` in Rstudio and knit it or you can run this
+command in your R console:
+
+``` r
+rmarkdown::render("talk.Rmd")
+```
+
+Some useful links
+-----------------
+
+### Compendium
+
+-   R compendium: [Example from Carl
+    Boettiger](https://github.com/cboettig/template)
+
+-   R package structure: [R packages book](http://r-pkgs.had.co.nz/)
+
+-   A package to create a compendium:
+    [rrtools](https://github.com/benmarwick/rrtools)
+
+-   A paper explaining compendia for analysis reproducibility: [Marwick
+    et al. (2018)](https://sci-hub.tw/10.1080/00031305.2017.1375986)
+
+-   A real example of research compendium: [by Carl
+    Boettiger](https://github.com/cboettig/nonparametric-bayes)
+
+### Docker
 
 -   Using Docker with R: [Ropenscilabs
     course](http://ropenscilabs.github.io/r-docker-tutorial/)
--   R compodium: [Example from Carl
-    Boettiger](https://github.com/cboettig/template)
+
+### Git
+
+-   A nice documentation to keep close to you:
+    [ProGit](https://git-scm.com/book/en/v2)
