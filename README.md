@@ -78,7 +78,7 @@ git config user.email "MY_NAME@example.com"
 
 You can check the local set up: `cat .git/config`
 
-\#\# Usage
+## Usage
 
 ### Clone the repository
 
@@ -86,7 +86,7 @@ You can check the local set up: `cat .git/config`
 git clone https://github.com/alaindanet/reproducibleR_workshop.git dir_name
 ```
 
-\#\#\# Compile the presentation
+### Compile the presentation
 
 Open the file `talk/talk.Rmd` in Rstudio and knit it or you can run this
 command in your R console:
