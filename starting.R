@@ -1,7 +1,7 @@
 library("devtools")
 options(devtools.name = "Alain Danet",
   devtools.desc.author = "person('Alain', 'Danet',
-  email='alain.danet@caramail.fr', role = c('aut', 'cre'))",
+  email='alain.danet@mnhn.fr', role = c('aut', 'cre'))",
   devtools.desc.license = "MIT + file LICENSE"
 )
 
