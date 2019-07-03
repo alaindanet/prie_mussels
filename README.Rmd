@@ -15,6 +15,35 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Research template 
+# multisimecol 
 
-A template for my research project
+The goal of multisimecol is to make easier (1) to share models and simulation
+and (2) to simulate models over a range of condition.
+
+## Features
+
+- Run model over a range of
+  - parameter values 
+  - initial conditions
+  - number of replicates
+
+- Average simulations:
+  - keep the mean of variable values over the n last timesteps
+
+- Create a object with all specifications of the simulations
+
+## Coming features
+
+- Run model with different equations set up
+- Default plot methods
+- Simulate of multisim object with `sim()`
+- Set a function to specify how to resume simulations
+
+# How to install
+
+You can install the package with devtools
+
+```{r}
+devtools::install_github("alaindanet/multisimecol")
+```
+
