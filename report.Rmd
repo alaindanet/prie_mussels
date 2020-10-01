@@ -1,0 +1,289 @@
+---
+title: "Report"
+author: "Alain Danet"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(
+  cache = FALSE,
+  collapse = TRUE,
+  comment = "#>",
+  #fig.dim = c(7, 7),
+  fig.fullwidth = TRUE,
+  fig.show = "hold",
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  results = TRUE 
+)
+
+library(tidyverse)
+library(magrittr)
+library(cowplot)
+library(viridis)
+source("R/misc.R") # Define your custom code as a bunch of functions.
+source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
+
+#theme_set(theme_cowplot())
+```
+
+```{r}
+myload(mat, station_analysis, species_attributes,
+  envir = environment(), dir = get_mypath("data") 
+)
+# Remove useless site
+  station_analysis %<>%
+    filter(site %in% mat$site)
+  mat %<>%
+    filter(site %in% station_analysis$site)
+
+mat_nmds <- mat[, -which(colnames(mat) == "site")] 
+
+all(station_analysis$site == mat$site)
+```
+
+```{r}
+hist(rowSums(mat_nmds))
+summary(rowSums(mat_nmds))
+summary(colSums(mat_nmds))
+```
+
+
+
+```{r, eval = FALSE}
+library(vegan)
+mynmds <- metaMDS(mat_nmds, 
+  distance = "bray",
+  k=2, trymax=1000,
+  autotransform = FALSE,
+  maxit = 1000,
+  #noshare = 
+)
+mysave(mynmds, dir = get_mypath("data"))
+
+plot(mynmds)
+ordiplot(mynmds,type="n")
+orditorp(mynmds, display="species",col="red",air=0.01)
+ordisurf(mynmds, station_analysis$avAltA, main="",col="forestgreen")
+orditorp(mynmds, display="species",col="red",air=0.01)
+ordisurf(mynmds, station_analysis$upDist, main="",col="forestgreen")
+orditorp(mynmds, display="species",col="red",air=0.01)
+ordisurf(mynmds, station_analysis$latitude, main="",col="forestgreen")
+orditorp(mynmds, display="species",col="red",air=0.01)
+ordisurf(mynmds, station_analysis$longitude, main="",col="forestgreen")
+orditorp(mynmds, display="species",col="red",air=0.01)
+#orditorp(mynmds,display="sites",cex=1.25,air=0.01)
+ordiplot(mynmds)
+#ordihull(mynmds, groups = caract_station[rowSums(mat[,-1]) > 0,]$substrat, draw="polygon", col="grey90", label= TRUE)
+ordiellipse(mynmds, groups = station_analysis$substrat, draw="polygon", col="grey90", label= TRUE)
+orditorp(mynmds, display="species", col="red", air=0.01)
+
+ordiplot(mynmds, type = "points")
+ordiellipse(mynmds, groups = station_analysis$type, draw="polygon", col="grey90", label= TRUE)
+orditorp(mynmds, display="species", col="red", air=0.01)
+
+ordiplot(mynmds, type = "points")
+ordiellipse(mynmds, groups = station_analysis$basin, draw="polygon", col="grey90", label= TRUE)
+orditorp(mynmds, display="species", col="red", air=0.01)
+
+env <- envfit(mynmds, select(station_analysis, latitude, upDist, avAltA, substrat, basin), permutations = 999, na.rm = TRUE)
+env
+
+plot(mynmds)
+plot(env)
+```
+
+# Richness
+
+```{r}
+myload(species_attributes, envir = environment(),
+  dir = get_mypath("data")
+)
+invasive_sp <- species_attributes[species_attributes$invasive, ]$species
+invasive_mat <- mat[, colnames(mat) %in% invasive_sp] 
+
+# Betadiv
+library(betapart)
+core <- betapart.core(mat_nmds)
+multi <- beta.multi(core, index.family = "sorensen")
+pair <- beta.pair(core, index.family = "sorensen")
+pair_mat <- map(pair, as.matrix)
+mean_site_beta <- map(pair_mat, rowMeans, na.rm = TRUE)
+
+mat_type <- list(all = mat_nmds, native = mat_nmds[,!colnames(mat_nmds) %in% invasive_sp])
+beta_sor <- map(mat_type, function (x) {
+  core <- betapart.core(mat_nmds)
+  pair <- beta.pair(core, index.family = "sorensen")
+  pair_mat <- map(pair, as.matrix)
+  mean_site_beta <- map(pair_mat, rowMeans, na.rm = TRUE)
+  return(mean_site_beta)
+})
+
+richness <- tibble(
+  site = mat$site,
+  richness = rowSums(mat_nmds),
+  avg_beta_sim = beta_sor$all$beta.sim,
+  avg_beta_sne = beta_sor$all$beta.sne,
+  avg_beta_sor = beta_sor$all$beta.sor,
+  avg_beta_sim_native = beta_sor$native$beta.sim,
+  avg_beta_sne_native = beta_sor$native$beta.sne,
+  avg_beta_sor_native = beta_sor$native$beta.sor
+)
+
+# Add if invaded or not
+richness %<>%
+  mutate(
+    nb_inv_sp = rowSums(invasive_mat), 
+    invaded = nb_inv_sp != 0,
+    richness_native = richness - nb_inv_sp
+    ) %>%
+left_join(select(station_analysis, site, basin), by = "site")
+
+richness <- cbind(richness, invasive_mat)
+```
+
+```{r}
+hist(richness$nb_inv_sp)
+```
+```{r}
+ggplot(richness, aes(x = as.factor(nb_inv_sp), y = richness)) +
+  geom_boxplot() +
+  facet_grid(~basin) +
+  labs(x = "Nb invasive species")
+
+richness %>%
+  ggplot(aes(x = as.factor(nb_inv_sp), y = richness_native)) +
+  geom_boxplot() +
+  facet_grid(~basin) +
+  labs(x = "Nb invasive species", y = "Richness - nb invasive sp")
+```
+
+```{r}
+richness %>%
+  pivot_longer(cols = c(cflum:swoo), names_to = "invasive_sp", values_to = "pa") %>%
+  ggplot(aes(x = as.factor(pa), y = richness_native)) +
+  geom_boxplot() +
+  facet_grid(invasive_sp~basin) +
+  labs(x = "Presence of the invasive species", y = "Richness (natives only)")
+```
+
+```{r}
+richness %>%
+  ggplot(aes(x = invaded, y = richness_native)) +
+  geom_boxplot() +
+  facet_grid(~basin) +
+  labs(x = "invaded communities", y = "Richness (natives only)")
+```
+```{r}
+hist(richness$richness_native)
+```
+
+
+```{r}
+library(DHARMa)
+library(glmmTMB)
+library(lme4)
+model_richness <- glmer(richness_native ~ invaded + (1|basin), family = "poisson", data =
+  richness)
+simulationOutput <- simulateResiduals(fittedModel = model_richness)
+plot(simulationOutput)
+testDispersion(simulationOutput)
+??glmer
+```
+
+```{r}
+richness_env <- richness %>%
+  left_join(select(station_analysis, -basin), by = "site")
+richness_env %>%
+  ggplot(aes(x = avAltA, y = richness)) +
+  geom_point() +
+  #facet_grid(~basin, scales = "free_x") +
+  labs(x = "Altitude (m)", y = "Richness")
+
+model_richness_env <- glmmTMB(richness_native ~ scale(latitude) + scale(avAltA) + scale(upDist) + (1|basin),
+  family = "nbinom1", data = richness_env)
+sim_out_env <- simulateResiduals(fittedModel = model_richness_env)
+plot(sim_out_env)
+```
+
+```{r}
+install.packages("spatialreg")
+library(spatialreg)
+library(sp)
+library(spdep)
+library(rgeos)
+# Duplicate points?
+st <- station_analysis
+test <- station_analysis %>%
+  distinct(longitude, latitude, .keep_all = TRUE)
+dupli <- station_analysis %>%
+  filter(!site %in% test$site)
+
+coordinates(st) <- ~ longitude + latitude 
+delau <- rgeos::gDelaunayTriangulation(st)
+?nb2listw
+lagsarlm
+```
+
+
+
+```{r}
+library(glmmTMB)
+model_richness <- glmmTMB::glmmTMB(richness_native ~ invaded + (1|basin),
+  family = nbinom1,
+  data = richness)
+simulationOutput <- simulateResiduals(fittedModel = model_richness)
+plot(simulationOutput)
+summary(model_richness)
+```
+
+
+
+# Betadiversity
+
+```{r}
+richness %>%
+  pivot_longer(cols = c(avg_beta_sim:avg_beta_sor), names_to = "betapart", values_to = "beta") %>%
+  ggplot(aes(x = as.factor(invaded), y = beta)) +
+  geom_boxplot() +
+  facet_grid(betapart~basin) +
+  labs(x = "Presence of the invasive species", y = "Dissimilarity Beta")
+```
+
+```{r}
+richness %>%
+  pivot_longer(cols = c(avg_beta_sim_native:avg_beta_sor_native), names_to = "betapart", values_to = "beta") %>%
+  ggplot(aes(x = as.factor(invaded), y = beta)) +
+  geom_boxplot() +
+  facet_grid(betapart~basin) +
+  labs(x = "Presence of the invasive species", y = "Dissimilarity Beta (Only
+    native sp)")
+
+richness %>%
+  pivot_longer(cols = c(avg_beta_sim_native:avg_beta_sor_native), names_to = "betapart", values_to = "beta") %>%
+  ggplot(aes(x = as.factor(invaded), y = beta)) +
+  geom_boxplot() +
+  facet_grid(~betapart) +
+  labs(x = "Presence of the invasive species", y = "Dissimilarity Beta (Only
+    native sp)")
+```
+
+```{r}
+
+beta_stat <- richness %>%
+  pivot_longer(cols = c(avg_beta_sim_native:avg_beta_sor_native), names_to = "betapart", values_to = "beta") %>%
+  group_by(betapart) %>%
+  nest() %>%
+  mutate(
+    model = map(data, ~lme4::lmer(beta ~ invaded + (1|basin), data = .x)),
+    resume = map(model, summary),
+    anova = map(model, anova),
+    dharma_sim = map(model, simulateResiduals),
+    dharma_plot = map(dharma_sim, plot)
+  )
+beta_stat[["resume"]]
+```
+
+
+

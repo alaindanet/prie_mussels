@@ -106,5 +106,40 @@ station_analysis %<>%
 
 mysave(station_analysis, dir = mypath("data"), overwrite = TRUE)
 
-#TODO: list sp invasives (sep en cours)
-#TODO: list sp grosses/petites (sep en cours)
+########################################
+#  List big species and invasive ones  #
+########################################
+
+data_path <- "MatrixDef.xlsx"
+excel_sheets(data_path)
+
+mat_big <- read_excel(data_path, sheet = "MatrixGrossesSpp")  
+colnames(mat_big) %<>% tolower()
+mat_little <- read_excel(data_path, sheet = "Matrix PetitesSpp")
+colnames(mat_little) %<>% tolower()
+
+big_spp <- colnames(mat_big)[-which(colnames(mat_big) == "site_nb")]
+little_spp <- colnames(mat_little)[-which(colnames(mat_little) == "site_nb")]
+
+# Check
+myload(mat, envir = environment(), dir = mypath("data"))
+sp_tot <- colnames(mat)[-which(colnames(mat) == "site")] 
+
+length(sp_tot) == length(big_spp) + length(little_spp)
+#good
+
+# Invasive species
+invasive_sp <- c("cflum", "swoo", "dros", "dpol", "pcomp", "stroum")
+invasive_sp[which(! invasive_sp %in% sp_tot)]
+
+# Put all in tibbles
+species_attributes <- tibble(
+  species = c(big_spp, little_spp),
+  ) %>%
+  mutate(
+    size_group = ifelse(species %in% little_spp, "little", "big"),
+    invasive = ifelse(species %in% invasive_sp, TRUE, FALSE),
+    invasive_status = ifelse(species %in% c("swoo", "dpol", "pcomp"), "ongoing", "done")
+  )
+
+mysave(species_attributes, dir = get_mypath("data"))
