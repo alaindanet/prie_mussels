@@ -55,23 +55,44 @@ summary(colSums(mat_nmds))
 library(vegan)
 mynmds <- metaMDS(mat_nmds, 
   distance = "bray",
-  k=2, trymax=1000,
+  k = 3,
+  trymax = 200,
   autotransform = FALSE,
   maxit = 1000,
-  #noshare = 
+  noshare=(engine="isoMDS"),
+  #noshare =  TRUE
 )
-mysave(mynmds, dir = get_mypath("data"))
+nmds2 <- metaMDS(mat_nmds, 
+  distance = "bray",
+  k = 3,
+  trymax = 200,
+  autotransform = FALSE,
+  maxit = 1000,
+  noshare=(engine="isoMDS"),
+  #noshare =  TRUE,
+  previous.best = mynmds
+)
+mysave(mynmds, nmds2, dir = get_mypath("data"), overwrite = TRUE)
 
 plot(mynmds)
+stressplot(mynmds)
+
+plot(nmds2)
+stressplot(nmds2)
+
 ordiplot(mynmds,type="n")
 orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$avAltA, main="",col="forestgreen")
+
 orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$upDist, main="",col="forestgreen")
+
 orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$latitude, main="",col="forestgreen")
+
 orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$longitude, main="",col="forestgreen")
+
 orditorp(mynmds, display="species",col="red",air=0.01)
 #orditorp(mynmds,display="sites",cex=1.25,air=0.01)
 ordiplot(mynmds)
@@ -201,14 +222,13 @@ richness_env %>%
   #facet_grid(~basin, scales = "free_x") +
   labs(x = "Altitude (m)", y = "Richness")
 
-model_richness_env <- glmmTMB(richness_native ~ scale(latitude) + scale(avAltA) + scale(upDist) + (1|basin),
+model_richness_env <- glmmTMB(richness_native ~ scale(latitude)*scale(longitude) + scale(avAltA) + scale(upDist) + (1|basin),
   family = "nbinom1", data = richness_env)
 sim_out_env <- simulateResiduals(fittedModel = model_richness_env)
 plot(sim_out_env)
 ```
 
-```{r}
-install.packages("spatialreg")
+```{r, eval = FALSE}
 library(spatialreg)
 library(sp)
 library(spdep)
@@ -219,9 +239,14 @@ test <- station_analysis %>%
   distinct(longitude, latitude, .keep_all = TRUE)
 dupli <- station_analysis %>%
   filter(!site %in% test$site)
+station_analysis %>%
+  filter(latitude %in% 46.8)
+  filter(site %in% as.character(c(89:99)))
 
-coordinates(st) <- ~ longitude + latitude 
-delau <- rgeos::gDelaunayTriangulation(st)
+coordinates(test) <- ~ longitude + latitude 
+plot(st)
+delau <- rgeos::gDelaunayTriangulation(test)
+plot(delau)
 ?nb2listw
 lagsarlm
 ```
@@ -241,6 +266,21 @@ summary(model_richness)
 
 
 # Betadiversity
+
+```{r}
+myload(region_polygon, the_8_hydrologic_basin, envir = environment(), dir = get_mypath("data"))
+station_analysis %<>% 
+  left_join(select(richness, site, invaded, richness), by = "site")
+sf_station <- st_as_sf(station_analysis, coords = c("longitude", "latitude"), crs = 4326)
+
+plot(st_geometry(the_8_hydrologic_basin))
+plot(st_geometry(sf_station))
+ggplot(the_8_hydrologic_basin) +
+  geom_sf() +
+  geom_sf(data = sf_station, aes(color = invaded))
+ggplot()
+```
+
 
 ```{r}
 richness %>%
@@ -270,19 +310,29 @@ richness %>%
 ```
 
 ```{r}
-
-beta_stat <- richness %>%
+beta_stat <- richness_env %>%
   pivot_longer(cols = c(avg_beta_sim_native:avg_beta_sor_native), names_to = "betapart", values_to = "beta") %>%
   group_by(betapart) %>%
   nest() %>%
   mutate(
-    model = map(data, ~lme4::lmer(beta ~ invaded + (1|basin), data = .x)),
+    model = map(data, ~lme4::lmer(beta ~ invaded + scale(upDist) + (1|basin), data = .x)),
+    model_tmb = map(data, ~glmmTMB(beta ~ invaded + scale(upDist) + (1|basin), data = .x)),
     resume = map(model, summary),
     anova = map(model, anova),
     dharma_sim = map(model, simulateResiduals),
     dharma_plot = map(dharma_sim, plot)
   )
 beta_stat[["resume"]]
+map(beta_stat[["model_tmb"]], summary)
+```
+
+TODO: Effet de l'invasion de swoo sur mat grosses sp; hypothèse de compétition
+forte
+
+# Co-occurence
+
+```{r}
+#TODO: separate patterns for little and big species 
 ```
 
 

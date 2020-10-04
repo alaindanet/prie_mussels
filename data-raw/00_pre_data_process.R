@@ -75,12 +75,72 @@ sf_station %>%
 outside_france_site <- sf_station[sf_station$in_france == 0, ]$site 
 station_to_rm <- c(station_to_rm, outside_france_site)
 
+# List to suppr based on double record
+double_site_to_rm <- c(
+  300, #301
+  162, 163, #Eaux saumatre
+  93, #94
+  326, #327
+  228:232, #233
+  211, #210
+  351, #352
+  350, #349
+  208, #209
+  201, #202
+  199, #200
+  195, #196
+  193, #194
+  186 #185
+)
+station_to_rm <- c(station_to_rm, double_site_to_rm)
+
 # Filter station to rm
 mat %<>% 
   filter(!site %in% station_to_rm)
 caract_station %<>%
   filter(!site %in% station_to_rm)
-mysave(station_to_rm, caract_station, mat, dir = mypath("data"), overwrite = TRUE)
+
+# Replicates to concatenate
+rep_to_cat <- list(
+  c(91,92),
+  c(88, 89),
+  c(84:86),
+  c(284:286),
+  c(97:98),
+  c(213:215),
+  c(216:218),
+  c(219, 220),
+  c(318, 319),
+  c(342, 343),
+  c(156:161),
+  c(197, 198)
+)
+concatened_site <- map_dfr(rep_to_cat, function (x, .df) {
+
+  x <- as.character(x)
+
+  tmp <- .df %>%
+    filter(site %in% x) %>%
+    summarise_if(is.integer, sum) %>%
+    mutate_if(is.integer, ~ifelse(. != 0, as.integer(1), as.integer(0)))
+
+  # Keep the first site as reference 
+  tmp$site <- x[1]
+
+  return(tmp)
+
+}, .df = mat)
+
+# Suppr site to be concatenated and add the concatenated sites 
+mat %<>%
+  filter(! site %in% as.character(unlist(rep_to_cat))) %>%
+  rbind(., concatened_site) %>%
+  arrange(as.character(site))
+
+caract_station %<>% #refilter site
+  filter(site %in% mat$site)
+
+mysave(station_to_rm, rep_to_cat, caract_station, mat, dir = mypath("data"), overwrite = TRUE)
 
 ####################################
 #  Adding environmental variables  #
@@ -129,7 +189,7 @@ length(sp_tot) == length(big_spp) + length(little_spp)
 #good
 
 # Invasive species
-invasive_sp <- c("cflum", "swoo", "dros", "dpol", "pcomp", "stroum")
+invasive_sp <- c("cflum", "swoo", "dros", "dpol", "ecomp", "stroum")
 invasive_sp[which(! invasive_sp %in% sp_tot)]
 
 # Put all in tibbles
@@ -139,7 +199,7 @@ species_attributes <- tibble(
   mutate(
     size_group = ifelse(species %in% little_spp, "little", "big"),
     invasive = ifelse(species %in% invasive_sp, TRUE, FALSE),
-    invasive_status = ifelse(species %in% c("swoo", "dpol", "pcomp"), "ongoing", "done")
+    invasive_status = ifelse(species %in% c("swoo", "dros", "ecomp"), "ongoing", "done")
   )
 
-mysave(species_attributes, dir = get_mypath("data"))
+mysave(species_attributes, dir = get_mypath("data"), overwrite = TRUE)
