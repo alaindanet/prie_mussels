@@ -1,7 +1,9 @@
 ---
 title: "Report"
 author: "Alain Danet"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
 ---
 
 ```{r}
@@ -80,44 +82,44 @@ mysave(mynmds, nmds2, dir = get_mypath("data"), overwrite = TRUE)
 myload(mynmds, nmds2, envir = environment(), dir = get_mypath("data"))
 
 plot(mynmds)
-stressplot(mynmds)
-plot(nmds2)
-stressplot(nmds2)
+#stressplot(mynmds)
+#plot(nmds2)
+#stressplot(nmds2)
 
 ordiplot(mynmds,type="n")
-orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$avAltA, main="",col="forestgreen")
+title("Altitude")
 
-orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$upDist, main="",col="forestgreen")
+title("Distance from the source (m)")
 
-orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$latitude, main="",col="forestgreen")
+title("Latitude (Degree)")
 
-orditorp(mynmds, display="species",col="red",air=0.01)
 ordisurf(mynmds, station_analysis$longitude, main="",col="forestgreen")
+title("Longitude (Degree)")
 
-orditorp(mynmds, display="species",col="red",air=0.01)
-#orditorp(mynmds,display="sites",cex=1.25,air=0.01)
+
 ordiplot(mynmds)
-#ordihull(mynmds, groups = caract_station[rowSums(mat[,-1]) > 0,]$substrat, draw="polygon", col="grey90", label= TRUE)
 ordiellipse(mynmds, groups = station_analysis$substrat, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds, display="species", col="red", air=0.01)
+title("Substrat (Calcaire, Acide, Mixte)")
+
 
 ordiplot(mynmds, type = "points")
 ordiellipse(mynmds, groups = station_analysis$type, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds, display="species", col="red", air=0.01)
+title("Stream type")
 
 ordiplot(mynmds, type = "points")
 ordiellipse(mynmds, groups = station_analysis$basin, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds, display="species", col="red", air=0.01)
+title("Hydrographic basin")
 
 env <- envfit(mynmds, select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 env
 
 plot(mynmds)
 plot(env)
-orditorp(mynmds, display="species", col="red", air=0.01)
+title("Fit of Environmental Vectors/Factor onto composition 
+ordination")
 ```
 
 ```{r}
@@ -133,7 +135,7 @@ big_sp_mat <- mat_nmds[, colnames(mat_nmds) %in% big_sp]
 
 ## Composition analysis (big species)
 
-```{r}
+```{r, eval = FALSE}
 # Rm empty rows
 mat_nmds_big_sp <- big_sp_mat[rowSums(big_sp_mat) > 0, ]
 station_analysis_big_sp <- station_analysis[rowSums(big_sp_mat) > 0, ]
@@ -163,37 +165,38 @@ mysave(mynmds_big_sp, nmds2_big_sp, station_analysis_big_sp, dir = get_mypath("d
 myload(mynmds_big_sp, nmds2_big_sp, envir = environment(), dir = get_mypath("data"))
 
 plot(mynmds_big_sp)
-stressplot(mynmds_big_sp)
-plot(nmds2_big_sp)
-stressplot(nmds2_big_sp)
+#stressplot(mynmds_big_sp)
+#plot(nmds2_big_sp)
+#stressplot(nmds2_big_sp)
 
 ordiplot(mynmds_big_sp,type="n")
-orditorp(mynmds_big_sp, display="species",col="red",air=0.01)
 ordisurf(mynmds_big_sp, station_analysis_big_sp$avAltA, main="",col="forestgreen")
+title("Altitude")
 
-orditorp(mynmds_big_sp, display="species",col="red",air=0.01)
 ordisurf(mynmds_big_sp, station_analysis_big_sp$upDist, main="",col="forestgreen")
+title("Distance from the source (m)")
 
-orditorp(mynmds_big_sp, display="species",col="red",air=0.01)
 ordisurf(mynmds_big_sp, station_analysis_big_sp$latitude, main="",col="forestgreen")
+title("Latitude (Degree)")
 
-orditorp(mynmds_big_sp, display="species",col="red",air=0.01)
 ordisurf(mynmds_big_sp, station_analysis_big_sp$longitude, main="",col="forestgreen")
+title("Longitude (Degree)")
 
-orditorp(mynmds_big_sp, display="species",col="red",air=0.01)
-orditorp(mynmds_big_sp,display="sites",cex=1.25,air=0.01)
+
+ordiplot(mynmds_big_sp, type = "none")
+title("Site id and species")
 
 ordiplot(mynmds_big_sp)
 ordiellipse(mynmds_big_sp, groups = station_analysis_big_sp$substrat, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds_big_sp, display="species", col="red", air=0.01)
+title("Substrat (Calcaire, Acide, Mixte)")
 
 ordiplot(mynmds_big_sp, type = "points")
 ordiellipse(mynmds_big_sp, groups = station_analysis_big_sp$type, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds_big_sp, display="species", col="red", air=0.01)
+title("Stream type")
 
 ordiplot(mynmds_big_sp, type = "points")
 ordiellipse(mynmds_big_sp, groups = station_analysis_big_sp$basin, draw="polygon", col="grey90", label= TRUE)
-orditorp(mynmds_big_sp, display="species", col="red", air=0.01)
+title("Hydrographic basin")
 
 env_big_sp <- envfit(mynmds_big_sp, select(station_analysis_big_sp, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 env_big_sp
@@ -522,7 +525,6 @@ enframe(name = "species", beta_contrib$SCBD) %>%
   labs(y = "Contribution to betadiversity", x = "species")
 ```
 
-
 # Co-occurence
 
 ```{r}
@@ -568,15 +570,59 @@ if (!file.exists(file_cooc)) {
 
 ## Co-occurence pair between species 
 p <- plot(cooc_bivalve)
-p
+
+dfids <- subset(assos_mat, sp1_name == sp2_name) %>%
+  rename(X1 = sp1_name, X2 = sp2_name) %>%
+  mutate(color_sp = ifelse(dfids$X1 %in% big_sp, "red", "green")
+  )
+
+
+dfids
+p +
+  geom_text(data = dfids, aes(label=X1, color = color_sp), hjust=1,vjust=0,angle = -22.5) +
+  scale_color_manual(values = c("green","red"), name = "Species type", labels = c("little","big"),drop=FALSE)
 
 ## Association profile by species
 p2 <- pair.profile(cooc_bivalve)
-p2
+p2 +
+  theme(axis.text.x = element_text(colour = color_sp))
 
 ggsave(filename = "fig/co-occurrence_bivalves.pdf", plot = p)
 ggsave(filename = "fig/association_profile_bivalves.pdf", plot = p2)
 ```
 
+```{r, eval = FALSE}
+cooc <- cooc_bivalve$results %>%
+  select(sp1_name, sp2_name, p_lt, p_gt) %>%
+  mutate(
+    pos = if_else(p_gt >= 0.05, 0, 1),
+    neg = if_else(p_lt >= 0.05, 0, -1),
+    assos = map2_dbl(pos, neg, sum) 
+    )
+assos_mat <- cooc %>%
+  select(sp1_name, sp2_name, assos) %>%
+  pivot_wider(names_from = sp2_name, values_from = assos) %>%
+  mutate_if(is.double, ~ifelse(is.na(.), 0, .)) %>% 
+  pivot_longer(cols = c(-sp1_name), names_to = "sp2_name", values_to = "assos")
 
+#assos_mat %>%
+  #ggplot(aes(x = sp1_name, y = sp2_name)) +
+  #geom_tile(aes(fill = factor(assos,levels=c(-1,0,1))), colour ="white") + 
+  #scale_fill_manual(
+    #values = c("#FFCC66","dark gray","light blue"),
+    #name = "",
+    #labels = c("negative","random","positive"),
+    #drop=FALSE) + 
+    #theme(
+      #axis.ticks = element_blank(),
+      #plot.title = element_text(vjust=-4,size=20, face="bold"),
+      #panel.background = element_rect(fill='white', colour='white'),
+      #panel.grid.major = element_blank(), 
+      #panel.grid.minor = element_blank(),
+      #legend.position = c(0.9, 0.5),
+      #legend.text=element_text(size=18)
+      #) + 
+    #ggtitle("Species Co-occurrence Matrix") + 
+    #xlab("") + ylab("")
+```
 

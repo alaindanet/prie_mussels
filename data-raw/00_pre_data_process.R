@@ -32,6 +32,8 @@ caract_station %<>%
   mutate(site = str_extract(site_nb, "[0-9]{1,3}")) %>%
   select(-site_nb)
 
+# Change species name
+colnames(mat)[colnames(mat) == "mmer"] <- "mmar" 
 
 ##############################
 #  Remove problematic sites  #
@@ -173,27 +175,21 @@ mysave(station_analysis, dir = mypath("data"), overwrite = TRUE)
 #  List big species and invasive ones  #
 ########################################
 
-data_path <- "MatrixDef.xlsx"
-excel_sheets(data_path)
+myload(mat, envir = environment(), dir = mypath("data"))
 
-mat_big <- read_excel(data_path, sheet = "MatrixGrossesSpp")  
-colnames(mat_big) %<>% tolower()
-mat_little <- read_excel(data_path, sheet = "Matrix PetitesSpp")
-colnames(mat_little) %<>% tolower()
-
-big_spp <- colnames(mat_big)[-which(colnames(mat_big) == "site_nb")]
-little_spp <- colnames(mat_little)[-which(colnames(mat_little) == "site_nb")]
+big_spp <- c("aana", "acyg", "aexu", "paur", "mmar", "plit", "pcom", "swoo",
+  "ucra", "uma", "upic", "utum") 
+little_spp <- colnames(mat)[!colnames(mat) %in% c(big_spp, "site")] 
 
 # Check
-myload(mat, envir = environment(), dir = mypath("data"))
 sp_tot <- colnames(mat)[-which(colnames(mat) == "site")] 
 
 length(sp_tot) == length(big_spp) + length(little_spp)
 #good
 
 # Invasive species
-invasive_sp <- c("cflum", "swoo", "dros", "dpol", "ecomp", "stroum")
-invasive_sp[which(! invasive_sp %in% sp_tot)]
+invasive_sp <- c("cflum", "swoo", "dros", "dpol", "ecom", "stra")
+invasive_sp[which(! invasive_sp %in% sp_tot)] # GOOD
 
 # Put all in tibbles
 species_attributes <- tibble(
