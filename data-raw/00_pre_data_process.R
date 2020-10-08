@@ -40,7 +40,7 @@ caract_station %<>%
 station_to_rm <- c()
 
 # Rm sampling with the same loc:
-tmp <- 302:315
+tmp <- c(302:315, 94, 353)
 caract_station %>%
   filter(site %in% tmp)
 # Vincent recommended to keep the 312 based on the ADN amplification performance
@@ -141,6 +141,9 @@ caract_station %<>% #refilter site
   filter(site %in% mat$site)
 
 mysave(station_to_rm, rep_to_cat, caract_station, mat, dir = mypath("data"), overwrite = TRUE)
+write_csv2(x = select(mat, site, everything()),
+  path = get_mypath("data-raw", "cleaned_matrix.csv")
+)
 
 ####################################
 #  Adding environmental variables  #
@@ -203,3 +206,21 @@ species_attributes <- tibble(
   )
 
 mysave(species_attributes, dir = get_mypath("data"), overwrite = TRUE)
+
+###########
+#  BASIN  #
+###########
+
+#shape_name <- "BassinDCE.shp"
+#if (!shape_name %in% list.files(path = get_mypath("data-raw", "bassin_dce"))) {
+
+  #dest_zip <- get_mypath("data-raw", "bassin_dce", "basin.zip")
+  #curl::curl_download("https://www.data.gouv.fr/fr/datasets/r/566ebfc8-3722-49df-ab65-ac151169ed5e", destfile = dest_zip)
+  #unzip(zipfile = dest_zip, exdir = get_mypath("data-raw", "bassin_dce"))
+  #file.remove(dest_zip)
+#}
+
+#library(sf)
+#basin <- read_sf(get_mypath("data-raw", "bassin_dce", shape_name))
+
+

@@ -182,10 +182,10 @@ library(cooccur)
 library(beepr)
 
 # Get species in row and sites in column 
-species_names <- colnames(mat)[!colnames(mat) %in% "site_nb"] 
-site_names <- mat$site_nb 
+species_names <- colnames(mat)[!colnames(mat) %in% "site"] 
+site_names <- mat$site 
 
-t_mat <- as.data.frame(t(mat[,-1]))
+t_mat <- as.data.frame(t(mat[,-ncol(mat)]))
 colnames(t_mat) <- site_names 
 rownames(t_mat) <- species_names 
 
@@ -205,7 +205,7 @@ rownames(test) <- species_names
 ## Co-occurence pair
 cooc_bivalve <- cooccur(mat = t_mat, type = "spp_site",
  thresh = TRUE, spp_names = TRUE)
-#beep("fanfare")
+beep("fanfare")
 
 ## Co-occurence pair between species 
 p <- plot(cooc_bivalve)
