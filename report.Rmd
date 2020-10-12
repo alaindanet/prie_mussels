@@ -163,6 +163,7 @@ mysave(mynmds_big_sp, nmds2_big_sp, station_analysis_big_sp, dir = get_mypath("d
 
 ```{r}
 myload(mynmds_big_sp, nmds2_big_sp, envir = environment(), dir = get_mypath("data"))
+station_analysis_big_sp <- station_analysis[rowSums(big_sp_mat) > 0, ]
 
 plot(mynmds_big_sp)
 #stressplot(mynmds_big_sp)
@@ -253,6 +254,7 @@ richness %<>%
 left_join(select(station_analysis, site, basin), by = "site")
 
 richness <- cbind(richness, invasive_mat)
+
 ```
 
 ```{r}
@@ -375,12 +377,13 @@ richness_env %>%
 
 ```{r}
 myload(region_polygon, the_8_hydrologic_basin, envir = environment(), dir = get_mypath("data"))
-station_analysis %<>% 
-  left_join(select(richness, site, invaded, richness), by = "site")
-sf_station <- st_as_sf(station_analysis, coords = c("longitude", "latitude"), crs = 4326)
+sf_station <- station_analysis %>%
+  select(site) %>%
+  left_join(richness_env, by = "site") %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 ```
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 library(spatialreg)
 library(sp)
 library(spdep)
@@ -391,47 +394,154 @@ test <- station_analysis %>%
   distinct(longitude, latitude, .keep_all = TRUE)
 dupli <- station_analysis %>%
   filter(!site %in% test$site)
-station_analysis %>%
-  filter(latitude %in% 46.8)
-  filter(site %in% as.character(c(89:99)))
 
 sf_station %<>%
   st_transform(crs = 2154)
-
 distance <- st_distance(sf_station, sf_station)
-class(distance)
-distance
-library(units)
-distance[]
-test <- which(distance <= as_units("m", 1), arr.ind = TRUE)
-test %>%
-  as_tibble() %>%
-  filter(row != col)
-distance[259, 211]
-# suppr duplicate
-sf_station[c(211, 259),]
-station_analysis[c(211, 259),]
-
-coordinates(test) <- ~ longitude + latitude 
-plot(st)
-delau <- rgeos::gDelaunayTriangulation(test)
-
-plot(delau)
-?nb2listw
-lagsarlm
 ```
 
+```{r make-sp_neighbors}
+sp_station <- as_Spatial(sf_station)
 
+knea <- knearneigh(coordinates(sp_station), k = 2, longlat = FALSE)
+neib <- knn2nb(knea)
+plot(st_geometry(st_transform(region_polygon, crs = 2154)))
+plot(neib, coordinates(sp_station), add = TRUE)
+title(main="K nearest neighbours, k = 2")
+
+ww <-  nb2listw(neib, style='B')
+moran.mc(sp_station$richness, ww, nsim=200, na.action = na.omit)
+test <- moran(sp_station$richness, ww, length(neib), Szero(ww))
+moran.plot(sp_station$richness, ww)
+```
+
+### Spatial model
 
 ```{r}
 library(glmmTMB)
+library(spaMM)
+
+richness_env$pos <- numFactor(coordinates(sp_station)[,1], coordinates(sp_station)[,2])
+richness_env$x <- coordinates(sp_station)[,1]
+richness_env$y <- coordinates(sp_station)[,2]
+
 model_richness <- glmmTMB::glmmTMB(richness_native ~ invaded + (1|basin),
   family = nbinom1,
   data = richness)
 simulationOutput <- simulateResiduals(fittedModel = model_richness)
-#plot(simulationOutput)
-summary(model_richness)
+testSpatialAutocorrelation(
+  simulationOutput,
+  x = coordinates(sp_station)[,1],
+  y = coordinates(sp_station)[,2],
+  plot = TRUE)
+
+m_spamm <- fitme(richness_native ~ invaded + (1|basin) + Matern(1 | x + y), data = richness, family = "poisson") # this take a bit of time
+m_spamm_nosp <- fitme(richness_native ~ invaded + (1|basin), data = richness, family = "poisson") # this take a bit of time
+m0_spamm <- fitme(richness_native ~ 1 + (1|basin) + Matern(1 | x + y), data = richness, family = "poisson") # this take a bit of time
+dd <- dist(richness[,c("x","y")])
+mm <- MaternCorr(dd, nu = 8.992365e-02, rho = 3.043489e-06)
+plot(as.numeric(dd), as.numeric(mm), xlab = "Distance between pairs of location [in m]", ylab = "Estimated correlation")
+sims <- simulateResiduals(m_spamm)
+plot(sims)
+#model_richness_sp <- glmmTMB::glmmTMB(richness_native ~ invaded + (1|basin) +
+  #mat(pos + 0 | site),
+  #family = nbinom1,
+  #data = richness)
+anova(m_spamm, m0_spamm)
+#LRT(object = m_spamm, object2 = m0_spamm, boot.repl = 100)
+#confint(m_spamm, parm = "invadedTRUE")
 ```
+
+```{r, eval = FALSE}
+model_richness_env <- fitme(
+  richness ~ latitude*longitude +
+    avAltA + upDist + (1|basin) + Matern(1 | x + y),
+  family = "poisson", data = na.omit(richness_env))
+
+# Get confidence interval
+model_richness_env_effects <- names(model_richness_env$fixef)
+ci_model_richness_env <- map(
+  model_richness_env_effects,
+  ~confint.HLfit(model_richness_env, parm = .x)
+) 
+map
+
+model0_richness_env <- fitme(
+  richness ~ 1 + (1|basin) + Matern(1 | x + y),
+  family = "poisson", data = na.omit(richness_env))
+LRT(model0_richness_env, model_richness_env)
+
+model1_richness_env <- fitme(
+  richness ~ 1 + scale(upDist) + (1|basin) + Matern(1 | x + y),
+  family = "poisson", data = na.omit(richness_env))
+LRT(model0_richness_env, model1_richness_env)
+model1_richness_env <- fitme(
+  richness ~ 1 + scale(latitude) + (1|basin) + Matern(1 | x + y),
+  family = "poisson", data = na.omit(richness_env))
+LRT(model0_richness_env, model1_richness_env)
+
+beepr::beep("fanfare")
+# Check
+#confint(model_richness_env, "scale(upDist)")
+sims <- simulateResiduals(model1_richness_env)
+plot(sims)
+# The following test is inapropriate for  
+testSpatialAutocorrelation(
+  sims, 
+  x = na.omit(richness_env)$x,
+  y = na.omit(richness_env)$y,
+  plot = FALSE)
+```
+```{r}
+library(MASS)
+f1 <- richness ~ latitude*longitude + avAltA + upDist
+richness_env$group <- factor(rep("a",nrow(richness_env)))
+
+model.base <- glmmPQL(f1, random=~1|group,
+                   data=na.omit(richness_env),
+                   family=poisson)
+plot(Variogram(model.base), main = "No Correlation Structure")
+plot(y = residuals(model.base), x = predict(model.base))
+qqnorm(residuals(model.base))
+qqline(residuals(model.base))
+
+model.1 <- glmmPQL(f1, random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corExp(form=~x+y, nugget = T),
+                   family = poisson)
+plot(Variogram(model.1), main = "Exponential correlation structure")
+plot(y = residuals(model.1), x = predict(model.1))
+qqnorm(residuals(model.1))
+qqline(residuals(model.1))
+
+model.2 <- glmmPQL(f1, random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corGaus(form=~x+y, nugget = T),
+                   family = poisson)
+plot(Variogram(model.2), main = "Gaussian correlation structure")
+
+model.3 <- glmmPQL(f1, random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corSpher(form=~x+y, nugget = T),
+                   family = poisson)
+plot(model.3)
+plot(Variogram(model.3), main = "Spheric correlation structure")
+
+model.4 <- glmmPQL(f1, random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corRatio(form=~x+y, nugget = T),
+                   family = poisson)
+plot(Variogram(model.4), main = "Ratio correlation structure")
+
+knea <- knearneigh(coordinates(sp_station[sp_station$site %in% na.omit(richness_env)$site,]),
+  k = 2, longlat = FALSE)
+neib <- knn2nb(knea)
+ww <-  nb2listw(neib, style='B')
+moran.test(residuals(model.3), ww)
+summary(model.2)
+```
+
+
 
 ### Richness big sp versus SWOO
 
@@ -604,6 +714,19 @@ assos_mat <- cooc %>%
   pivot_wider(names_from = sp2_name, values_from = assos) %>%
   mutate_if(is.double, ~ifelse(is.na(.), 0, .)) %>% 
   pivot_longer(cols = c(-sp1_name), names_to = "sp2_name", values_to = "assos")
+
+assos_mat_vincent_assos <- cooc %>%
+  select(sp1_name, sp2_name, assos) %>%
+  pivot_wider(names_from = sp2_name, values_from = assos) %>%
+  mutate_if(is.double, ~ifelse(is.na(.), 0, .))
+
+assos_mat_vincent_strength <- cooc_bivalve$results %>%
+  mutate(strength = (obs_cooccur - exp_cooccur) / exp_cooccur) %>%
+  select(sp1_name, sp2_name, strength) %>%
+  pivot_wider(names_from = sp2_name, values_from = strength)
+
+write_csv2(assos_mat_vincent_assos, path = get_mypath("data-raw", "species_association_binary.csv"))
+write_csv2(assos_mat_vincent_strength, path = get_mypath("data-raw", "species_association_strength.csv"))
 
 #assos_mat %>%
   #ggplot(aes(x = sp1_name, y = sp2_name)) +
