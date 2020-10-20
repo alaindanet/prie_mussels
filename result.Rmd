@@ -1,0 +1,342 @@
+---
+title: "Results"
+author: "Alain Danet"
+output: 
+  html_document
+---
+
+```{r}
+knitr::opts_chunk$set(
+  cache = TRUE,
+  collapse = TRUE,
+  comment = "#>",
+  #fig.dim = c(7, 7),
+  fig.fullwidth = TRUE,
+  fig.show = "hold",
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  results = TRUE 
+)
+
+library(tidyverse)
+library(magrittr)
+library(cowplot)
+library(viridis)
+library(sf)
+library(vegan)
+library(kableExtra)
+source("R/misc.R") # Define your custom code as a bunch of functions.
+source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
+
+#theme_set(theme_cowplot())
+```
+
+```{r}
+myload(mat, station_analysis, species_attributes,
+  envir = environment(), dir = get_mypath("data") 
+)
+# Remove useless site
+  station_analysis %<>%
+    filter(site %in% mat$site)
+  mat %<>%
+    filter(site %in% station_analysis$site)
+
+mat_nmds <- mat[, -which(colnames(mat) == "site")] 
+
+all(station_analysis$site == mat$site)
+```
+
+# Composition
+
+```{r}
+myload(mynmds, envir = environment(), dir = get_mypath("data"))
+
+compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
+#compo_env
+#https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
+plot(mynmds, type = "p")
+#labels(compo_env)
+labels_mix <- list(
+  vectors = c("Lat", "Long", "SourceDist", "Alt"),
+  factors = c("Acid", "Calc", "Mixt"))
+plot(compo_env, p.max = 0.05, labels = labels_mix)
+title("Fit of Environmental Vectors/Factors onto composition 
+ordination")
+```
+
+```{r}
+#str(compo_env)
+#scores(compo_env, "vectors")
+#scores(compo_env, "factors")
+vec_compo_res <- compo_env$vectors[["arrows"]] %>%
+  as_tibble
+tmp <- map(c("r", "pvals"), 
+  ~enframe(compo_env$vectors[[.x]],
+    name = "variable", value = .x))
+#vec_compo_res <- 
+  #cbind(tmp[[1]], vec_compo_res) %>%
+  
+fac_compo_res <- compo_env$factors[c("r", "pvals")] %>%
+  as_tibble %>%
+  mutate(variable = "substrat") 
+result_compo <- rbind(
+  left_join(tmp[[1]], tmp[[2]], by = "variable"),
+  fac_compo_res
+)
+result_compo %>%
+  kable(format = "markdown")
+```
+
+# Species richness
+
+```{r}
+myload(richness_env, envir = environment(), dir = get_mypath("data"))
+richness_env %<>% na.omit
+```
+
+```{r, results = FALSE, fig.show = "none"}
+library(MASS)
+library(gstat)
+library(spaMM)
+library(nlme)
+library(ggeffects)
+f1 <- richness ~ latitude*longitude + avAltA + upDist
+richness_env$group <- factor(rep("a",nrow(richness_env)))
+
+model.base <- glmmPQL(f1, random=~1|group,
+                   data=na.omit(richness_env),
+                   family=poisson)
+#plot(Variogram(model.base), main = "No Correlation Structure")
+#plot(y = residuals(model.base), x = predict(model.base))
+#qqnorm(residuals(model.base))
+#qqline(residuals(model.base))
+
+model.1 <- glmmPQL(f1, random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corExp(form=~x+y, nugget = T),
+                   family = poisson)
+#plot(Variogram(model.1), main = "Exponential correlation structure")
+#plot(y = residuals(model.1), x = predict(model.1))
+#qqnorm(residuals(model.1))
+#qqline(residuals(model.1))
+```
+
+```{r}
+res <- summary(model.1)
+res$tTable %>%
+  kable(format = "markdown")
+```
+
+```{r fit-lat}
+fit <- richness_env %>% 
+  as_tibble %>%
+  mutate(pred_rich = exp(predict(model.1)))
+
+pred_rich_lat <- ggeffect(model.1, terms = c("latitude", "longitude [quart2]")) %>%
+  as_tibble()
+   
+p_rich_lat <- fit %>%
+  ggplot(aes(y = richness, x = latitude)) +
+  geom_point() +
+  geom_line(data = pred_rich_lat, aes(y = predicted, x = x, color = group), size
+    = 1) +
+  geom_ribbon(data = pred_rich_lat,
+    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted, fill = group),
+    , alpha = .2) +
+  scale_color_discrete("Longitude (deg.)") +
+  guides(fill = FALSE) +
+  labs(y = "Species richness", x = "Latitude (deg.)") +
+  theme_bw()
+```
+```{r}
+pred_rich_dist <- ggeffect(model.1, terms = c("upDist")) %>%
+  as_tibble()
+p_rich_dist <- fit %>%
+  ggplot(aes(y = richness, x = upDist)) +
+  geom_point() +
+  geom_line(data = pred_rich_dist, aes(y = predicted, x = x), size
+    = 1) +
+  geom_ribbon(data = pred_rich_dist,
+    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted),
+    , alpha = .2) +
+  labs(y = "Species richness", x = "Distance from source (m)") +
+  theme_bw()
+p_rich <- plot_grid(p_rich_lat, p_rich_dist,
+  labels = "AUTO", rel_widths = c(1, .8))
+save_plot(
+  p_rich,
+  filename = get_mypath("fig", "richness_model.png"),
+  base_height = 4, base_asp = 2.618
+)
+p_rich
+```
+
+
+
+# Co-occurence
+
+```{r}
+library(cooccur)
+library(beepr)
+
+# Get species in row and sites in column 
+species_names <- colnames(mat)[!colnames(mat) %in% "site"] 
+site_names <- mat$site 
+
+t_mat <- as.data.frame(t(mat[,-ncol(mat)]))
+colnames(t_mat) <- site_names 
+rownames(t_mat) <- species_names 
+
+#rowSums(t_mat)
+#rowMeans(t_mat)
+#colSums(t_mat) %>% hist 
+
+test <- t_mat %>%
+  mutate_all(.funs = as.integer)
+rownames(test) <- species_names 
+```
+
+```{r}
+## Co-occurence pair
+file_cooc <- get_mypath("data", "cooc_bivalve.rda") 
+if (!file.exists(file_cooc)) {
+  cooc_bivalve <- cooccur(mat = t_mat, type = "spp_site",
+    thresh = TRUE, spp_names = TRUE)
+  beep("fanfare")
+  mysave(cooc_bivalve, dir = get_mypath("data"), overwrite = TRUE)
+} else {
+  myload(
+    cooc_bivalve, 
+    envir = environment(),
+    dir = get_mypath("data")
+  )
+} 
+```
+
+```{r}
+#cooc_bivalve
+cooc <- cooc_bivalve$results %>%
+  dplyr::select(sp1_name, sp2_name, p_lt, p_gt) %>%
+  mutate(
+    pos = if_else(p_gt >= 0.05, 0, 1),
+    neg = if_else(p_lt >= 0.05, 0, -1),
+    assos = map2_dbl(pos, neg, sum) 
+  )
+```
+
+```{r}
+assos_mat <- cooc %>%
+  dplyr::select(sp1_name, sp2_name, assos) %>%
+  pivot_wider(names_from = sp2_name, values_from = assos) %>%
+  mutate_if(is.double, ~ifelse(is.na(.), 0, .)) %>% 
+  pivot_longer(cols = c(-sp1_name), names_to = "sp2_name", values_to = "assos")
+
+assos_mat_vincent_assos <- cooc %>%
+  dplyr::select(sp1_name, sp2_name, assos) %>%
+  pivot_wider(names_from = sp2_name, values_from = assos) %>%
+  mutate_if(is.double, ~ifelse(is.na(.), 0, .))
+
+assos_mat_vincent_strength <- cooc_bivalve$results %>%
+  mutate(strength = (obs_cooccur - exp_cooccur) / exp_cooccur) %>%
+  dplyr::select(sp1_name, sp2_name, strength) %>%
+  pivot_wider(names_from = sp2_name, values_from = strength)
+```
+
+```{r, cache = FALSE}
+cooc_bivalve$results %<>%
+  mutate_at(.vars = vars(sp1_name, sp2_name), as.character)
+
+get_cooc_pair <- function (sp1, sp2, .data) {
+  out <- .data[.data$sp1_name %in% c(sp1) & .data$sp2_name %in% c(sp2), ]
+  if(nrow(out) < 1) {
+    out <- .data[.data$sp1_name %in% c(sp2) & .data$sp2_name %in% c(sp1), ]
+    if (nrow(out) > 0) {
+      out[,colnames(out) %in% c("sp1_name", "sp2_name")] <- c(sp1, sp2)
+    }
+  }
+  if(nrow(out) < 1) {
+    out <- .data[1,]
+    out[,colnames(out) %in% c("sp1_name", "sp2_name")] <- c(sp1, sp2)
+    out[, !colnames(out) %in% c("sp1_name", "sp2_name")] <- NA
+  }
+  stopifnot(nrow(out) == 1)
+  return(out)
+}
+
+cooc_bivalve$results %<>%
+  mutate(
+    strength = (obs_cooccur - exp_cooccur) / exp_cooccur,
+    cooc = pmap_chr(list(prob_cooccur, p_lt, p_gt),
+      function(prob, pl, pg) {
+	if (any(is.na(c(prob, pl, pg)))) {
+	  return(NA)
+	}
+	if (pl < .05) {
+	  return("negative")
+	} else if (pg < .05) {
+	  return("positive")
+	} else {
+	  return("random")
+	}
+    })
+    ) 
+test <- tibble(
+  sp = unique(c(as.character(cooc_bivalve$results$sp1_name),
+      as.character(cooc_bivalve$results$sp2_name))))
+test %<>%
+  mutate(sp2 = map(sp, ~unique(test$sp)[!unique(test$sp) %in% .x])) %>%
+  unnest(sp2) 
+test %<>% 
+  mutate(data = map2(sp, sp2, 
+      ~try(get_cooc_pair( .x, .y, 
+      .data = cooc_bivalve$results[,! colnames(cooc_bivalve$results) %in% c("sp1", "sp2")])
+      ) )) 
+test %<>%
+  unnest(data) 
+cooc_plot <- test %>%
+  group_by(sp) %>%
+  nest() %>%
+  mutate(
+    gg = map2(data, sp, function (x, sp) {
+
+      x$sp2 %<>% str_to_title
+      try(ggplot(x, aes(
+	  y = strength,
+	  x = factor(sp2, levels = sp2[order(strength)]),
+	  fill = cooc)
+	) +
+      geom_bar(stat = "identity") +
+      ylim(c(-1, 4.1)) +
+      labs(
+	y = "(Observed - Expected) / Expected Cooccurences",
+	x = "Species",
+	title = sp,
+	fill = "Cooccurence \n classification"
+      ) +
+    scale_fill_manual(
+      values = c(
+	"negative" = viridis_pal()(3)[1],
+	"random" = viridis_pal()(3)[2],
+	"positive" = viridis_pal()(3)[3]
+      )) +
+    #viridis::scale_fill_viridis(discrete=TRUE) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+      )
+    })
+  )
+cooc_plot$gg[[17]]
+```
+
+```{r}
+fig_dir <- get_mypath("fig")
+if (!dir.exists(fig_dir)) {
+  dir.create(fig_dir)
+}
+map2(test$sp, test$gg,
+  ~ggsave(
+    filename = paste0(fig_dir, "/", "cooc_", .x, ".png"),
+    plot = .y 
+    ))
+#test[test$sp == "eglo",]$data
+```

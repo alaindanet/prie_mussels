@@ -20,11 +20,11 @@ knitr::opts_chunk$set(
   results = TRUE 
 )
 
+library(sf)
 library(tidyverse)
 library(magrittr)
 library(cowplot)
 library(viridis)
-library(sf)
 source("R/misc.R") # Define your custom code as a bunch of functions.
 source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 
@@ -113,7 +113,7 @@ ordiplot(mynmds, type = "points")
 ordiellipse(mynmds, groups = station_analysis$basin, draw="polygon", col="grey90", label= TRUE)
 title("Hydrographic basin")
 
-env <- envfit(mynmds, select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
+env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 env
 
 plot(mynmds)
@@ -199,7 +199,7 @@ ordiplot(mynmds_big_sp, type = "points")
 ordiellipse(mynmds_big_sp, groups = station_analysis_big_sp$basin, draw="polygon", col="grey90", label= TRUE)
 title("Hydrographic basin")
 
-env_big_sp <- envfit(mynmds_big_sp, select(station_analysis_big_sp, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
+env_big_sp <- envfit(mynmds_big_sp, dplyr::select(station_analysis_big_sp, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 env_big_sp
 
 plot(mynmds_big_sp)
@@ -251,7 +251,7 @@ richness %<>%
     richness_native = richness - nb_inv_sp,
     richness_native_big_sp = rowSums(big_sp_mat[, ! colnames(big_sp_mat) %in% invasive_sp]) 
     ) %>%
-left_join(select(station_analysis, site, basin), by = "site")
+left_join(dplyr::select(station_analysis, site, basin), by = "site")
 
 richness <- cbind(richness, invasive_mat)
 
@@ -321,7 +321,8 @@ library(lme4)
 
 ```{r}
 richness_env <- richness %>%
-  left_join(select(station_analysis, -basin), by = "site")
+  left_join(dplyr::select(station_analysis, -basin), by = "site")
+mysave(richness_env, dir = get_mypath("data"), overwrite = TRUE)
 
 model_richness_env <- glmmTMB(
   richness ~ scale(latitude)*scale(longitude) +
@@ -378,7 +379,8 @@ richness_env %>%
 ```{r}
 myload(region_polygon, the_8_hydrologic_basin, envir = environment(), dir = get_mypath("data"))
 sf_station <- station_analysis %>%
-  select(site) %>%
+  filter(site %in% richness_env$site) %>%
+  dplyr::select(site) %>%
   left_join(richness_env, by = "site") %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 ```
@@ -413,17 +415,19 @@ ww <-  nb2listw(neib, style='B')
 moran.mc(sp_station$richness, ww, nsim=200, na.action = na.omit)
 test <- moran(sp_station$richness, ww, length(neib), Szero(ww))
 moran.plot(sp_station$richness, ww)
-```
-
-### Spatial model
-
-```{r}
-library(glmmTMB)
-library(spaMM)
 
 richness_env$pos <- numFactor(coordinates(sp_station)[,1], coordinates(sp_station)[,2])
 richness_env$x <- coordinates(sp_station)[,1]
 richness_env$y <- coordinates(sp_station)[,2]
+mysave(richness_env, dir = get_mypath("data"), overwrite = TRUE)
+```
+
+### Spatial model
+
+```{r, eval = FALSE}
+library(glmmTMB)
+library(spaMM)
+
 
 model_richness <- glmmTMB::glmmTMB(richness_native ~ invaded + (1|basin),
   family = nbinom1,
@@ -492,8 +496,15 @@ testSpatialAutocorrelation(
   y = na.omit(richness_env)$y,
   plot = FALSE)
 ```
+
+## Test statistical models
+
 ```{r}
 library(MASS)
+library(gstat)
+library(DHARMa)
+library(spaMM)
+library(nlme)
 f1 <- richness ~ latitude*longitude + avAltA + upDist
 richness_env$group <- factor(rep("a",nrow(richness_env)))
 
@@ -527,20 +538,29 @@ model.3 <- glmmPQL(f1, random=~1|group,
 plot(model.3)
 plot(Variogram(model.3), main = "Spheric correlation structure")
 
-model.4 <- glmmPQL(f1, random=~1|group,
-                   data = na.omit(richness_env),
-                   correlation = corRatio(form=~x+y, nugget = T),
-                   family = poisson)
-plot(Variogram(model.4), main = "Ratio correlation structure")
+#model.4 <- glmmPQL(f1, random=~1|group,
+                   #data = na.omit(richness_env),
+                   #correlation = corRatio(form=~x+y, nugget = T),
+                   #family = poisson)
+#plot(Variogram(model.4), main = "Ratio correlation structure")
 
 knea <- knearneigh(coordinates(sp_station[sp_station$site %in% na.omit(richness_env)$site,]),
   k = 2, longlat = FALSE)
 neib <- knn2nb(knea)
 ww <-  nb2listw(neib, style='B')
 moran.test(residuals(model.3), ww)
-summary(model.2)
+#summary(model.2)
 ```
 
+### True models
+
+```{r}
+library(tidyr)
+library(broom)
+#augment(model.3)
+tidy(car::Anova(model.3))
+#wald.test(b = coef(model.3), Sigma = vcov(model.3), Terms = 2:4)
+```
 
 
 ### Richness big sp versus SWOO
@@ -566,6 +586,25 @@ richness %>%
   geom_boxplot() +
   labs(title = "Effect of Cflum on richness of little species")
 ```
+
+```{r}
+
+model_cflu <- glmmPQL(
+  I(richness_native - richness_native_big_sp) ~ as.factor(cflum)
+  , random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corSpher(form=~x+y, nugget = T),
+                   family = poisson)
+
+model_cflu_env <- glmmPQL(
+  richness_native - richness_native_big_sp ~ as.factor(cflum) + latitude*longitude + avAltA + upDist
+  , random=~1|group,
+                   data = na.omit(richness_env),
+                   correlation = corSpher(form=~x+y, nugget = T),
+                   family = poisson)
+```
+
+
 
 # Betadiversity
 
@@ -682,20 +721,22 @@ if (!file.exists(file_cooc)) {
 p <- plot(cooc_bivalve)
 
 dfids <- subset(assos_mat, sp1_name == sp2_name) %>%
-  rename(X1 = sp1_name, X2 = sp2_name) %>%
-  mutate(color_sp = ifelse(dfids$X1 %in% big_sp, "red", "green")
+  rename(X1 = sp1_name, X2 = sp2_name)
+dfids %<>%
+  mutate(
+    color_sp = ifelse(dfids$X1 %in% big_sp, "red", "green")
   )
 
 
-dfids
+#dfids
 p +
   geom_text(data = dfids, aes(label=X1, color = color_sp), hjust=1,vjust=0,angle = -22.5) +
   scale_color_manual(values = c("green","red"), name = "Species type", labels = c("little","big"),drop=FALSE)
 
 ## Association profile by species
 p2 <- pair.profile(cooc_bivalve)
-p2 +
-  theme(axis.text.x = element_text(colour = color_sp))
+#p2 +
+  #theme(axis.text.x = element_text(colour = color_sp))
 
 ggsave(filename = "fig/co-occurrence_bivalves.pdf", plot = p)
 ggsave(filename = "fig/association_profile_bivalves.pdf", plot = p2)
@@ -703,26 +744,26 @@ ggsave(filename = "fig/association_profile_bivalves.pdf", plot = p2)
 
 ```{r, eval = FALSE}
 cooc <- cooc_bivalve$results %>%
-  select(sp1_name, sp2_name, p_lt, p_gt) %>%
+  dplyr::select(sp1_name, sp2_name, p_lt, p_gt) %>%
   mutate(
     pos = if_else(p_gt >= 0.05, 0, 1),
     neg = if_else(p_lt >= 0.05, 0, -1),
     assos = map2_dbl(pos, neg, sum) 
     )
 assos_mat <- cooc %>%
-  select(sp1_name, sp2_name, assos) %>%
+  dplyr::select(sp1_name, sp2_name, assos) %>%
   pivot_wider(names_from = sp2_name, values_from = assos) %>%
   mutate_if(is.double, ~ifelse(is.na(.), 0, .)) %>% 
   pivot_longer(cols = c(-sp1_name), names_to = "sp2_name", values_to = "assos")
 
 assos_mat_vincent_assos <- cooc %>%
-  select(sp1_name, sp2_name, assos) %>%
+  dplyr::select(sp1_name, sp2_name, assos) %>%
   pivot_wider(names_from = sp2_name, values_from = assos) %>%
   mutate_if(is.double, ~ifelse(is.na(.), 0, .))
 
 assos_mat_vincent_strength <- cooc_bivalve$results %>%
   mutate(strength = (obs_cooccur - exp_cooccur) / exp_cooccur) %>%
-  select(sp1_name, sp2_name, strength) %>%
+  dplyr::select(sp1_name, sp2_name, strength) %>%
   pivot_wider(names_from = sp2_name, values_from = strength)
 
 write_csv2(assos_mat_vincent_assos, path = get_mypath("data-raw", "species_association_binary.csv"))
