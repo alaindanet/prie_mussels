@@ -2,6 +2,10 @@
 title: Material & Methods
 date: "`r Sys.Date()`"
 bibliography: references.bib
+output:
+  html_document:
+    fig_caption: true
+    self_contained: true 
 ---
 
 ```{r}
@@ -39,17 +43,15 @@ myload(mynmds, envir = environment(), dir = get_mypath("data"))
 
 ## Data selection
 
-We kept only the sites that did not suffer from amplication problem.
 We concatenate replicates samples from sites that suffered from amplification
 problems.
 
 ## Environmental variables
 
 The coordinates of the sites, latitude and longitude, were recorded during
-sampling events. The site distance from its spring and the site altitude were
-extracted thank to a stream network reconstruction. The stream network
-reconstruction was done with the R packages `openStars` and `SSN`
-[@kattwinkel_preparing_2020; @hoef_ssn:_2014].
+sampling events. The distance from site to its spring and the site altitude were
+extracted thank to a stream network reconstruction, which was done with the R
+packages `openStars` and `SSN` [@kattwinkel_preparing_2020; @hoef_ssn:_2014].
 
 ## Statistical analysis
 
@@ -117,7 +119,8 @@ The variables latitude, longitude, substrate and string distance were
 significantly associated to the ordination axis, but not altitude (Figure
 \@ref(fig:nmds-p), Table \@ref(tab:nmds)). Latitude and longitude were the
 variables the most related to the community composition 
-(resp. $r^2 = `r result_compo$r[1]`$, $r^2 = `r result_compo$r[2]`$). 
+(resp. $r^2 = `r signif(result_compo$r[1], 2)`$,
+$r^2 = `r signif(result_compo$r[2], 2)`$). 
 
 
 ## Species richness
@@ -126,9 +129,14 @@ variables the most related to the community composition
 myload(lm_res_tab, lm_res_tab_to_print, envir = environment(),
   dir = get_mypath("data"))
 mod <- lm_res_tab
-bt_lm <- mod %>% 
-  mutate_at(c("Estimate", "SE"), exp)
-library(emmeans)
+bt_lm <- mod %>%
+  mutate(
+    `Estimate (original scale)` = exp(Estimate),
+    `SE (original scale)` = `Estimate (original scale)` * SE,
+    lower = Estimate - 1.96*SE, 
+    upper = Estimate + 1.96*SE, 
+  )
+
 out <- lapply(split(bt_lm, seq(1, nrow(bt_lm))), function(x) lapply(1:nrow(x), head, x = x)) %>%
   unlist(bt_lm, recursive = FALSE)
 names(out) <- bt_lm$Term
@@ -138,10 +146,11 @@ kable(lm_res_tab,
   kable_styling(c("striped", "hover"))
 ```
 ```{r}
+myload(model.1, envir = environment(), dir = get_mypath("data"))
 ci <- intervals(model.1, which = "fixed")$fixed %>%
   as.data.frame %>%
   rownames_to_column(var = "term")
-bt_ci  <- ci %>% 
+bt_ci <- ci %>% 
   mutate_at(c("lower", "est.", "upper"), ~round(exp(.), 2))
 ```
 
@@ -163,23 +172,26 @@ rich_cap <- paste0(
    #= exp(b0) * exp(b1*x1) * exp(b2*x2) * exp(error)
    #= exp(b0) * exp(b1)^x1 * exp(b2)^x2 * exp(error)
 #https://stats.idre.ucla.edu/r/faq/how-can-i-estimate-the-standard-error-of-transformed-regression-parameters-in-r-using-the-delta-method/
+#http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.47.9023&rep=rep1&type=pdf
 ```
 
 Analogously to community composition, species richness was significantly related
-to latitude,  
-We found that species richness increased by $`r bt_lm[["Latitude"]]$Estimate`$ 
-($`r bt_lm[["Latitude"]]$SE`$ se) with latitude .
-
-
+to latitude, sprin,
+We found that species richness increase by $`r out[["Latitude"]]$Estimate`$
+log-unit ($`r out[["Latitude"]]$SE`$ se) by latitude degree and increased by
+$`r out[["Spring distance"]]$Estimate`$ log-unit ($`r out[["Spring
+distance"]]$SE`$ se) by meter distance from the spring. However, longitude and
+altitude had no significant effects on species richness. We further found that
+species richness was higher in acid and mixed substrate than in calcareous
+substrate (respectively $`r out[["Acid"]]$Estimate`$ log-unit, 
+$`r out[["Acid"]]$SE`$ se and $`r out[["Mixed"]]$Estimate`$ log-unit,
+$`r out[["Mixed"]]$SE`$ se).
 
 ```{r rich-p, fig.cap=rich_cap}
 include_graphics(path = get_mypath("fig", "richness_model.png"))
 ```
- 
-
 
 ## Cooccurence
-
 
 
 # References

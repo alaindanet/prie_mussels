@@ -4,7 +4,7 @@ author: "Alain Danet"
 output: 
   html_document
 ---
-
+,
 ```{r}
 knitr::opts_chunk$set(
   cache = TRUE,
@@ -131,6 +131,12 @@ model.1 <- glmmPQL(f1, random=~1|group,
 #plot(y = residuals(model.1), x = predict(model.1))
 #qqnorm(residuals(model.1))
 #qqline(residuals(model.1))
+ci_nlme <- intervals(model.1, which = "fixed")$fixed %>%
+  as.data.frame %>%
+  rownames_to_column("Term") %>%
+  mutate_if(is.double, exp)
+# Crap
+
 ```
 
 ```{r}
@@ -152,7 +158,7 @@ lm_res_tab_to_print <-
       .)) %>%
   mutate(P = map_chr(P, standardize_P))
 
-mysave(lm_res_tab, lm_res_tab_to_print, dir = get_mypath("data"), overwrite = TRUE)
+mysave(model.1, lm_res_tab, lm_res_tab_to_print, dir = get_mypath("data"), overwrite = TRUE)
 kable(lm_res_tab_to_print)
 ```
 
@@ -404,7 +410,7 @@ cooc_plot <- test %>%
       )
     })
   )
-cooc_plot$gg[[17]]
+#cooc_plot$gg[[17]]
 ```
 
 ```{r}
@@ -412,7 +418,7 @@ fig_dir <- get_mypath("fig")
 if (!dir.exists(fig_dir)) {
   dir.create(fig_dir)
 }
-map2(test$sp, test$gg,
+map2(cooc_plot$sp, cooc_plot$gg,
   ~ggsave(
     filename = paste0(fig_dir, "/", "cooc_", .x, ".png"),
     plot = .y 

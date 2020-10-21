@@ -715,7 +715,7 @@ if (!file.exists(file_cooc)) {
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 
 ## Co-occurence pair between species 
 p <- plot(cooc_bivalve)
