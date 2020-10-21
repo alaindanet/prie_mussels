@@ -46,3 +46,38 @@ source_dir <- function(path, trace = TRUE, ...) {
     if(trace) cat("\n")
   }
 }
+
+get_replace_tab <- function() {
+  c(
+    "(Intercept)" = "Intercept",
+    "longitude" = "Longitude",
+    "latitude" = "Latitude",
+    "avAltA" = "Altitude",
+    "upDist" = "Spring distance",
+    "substratcalc" = "Acid",
+    "substratmxt" = "Mixed",
+    "latitude:longitude" = "Latitude x Longitude",
+    "Value" = "Estimate",
+    "Std.Error" = "SE",
+    "DF" = "DF",
+    "t-value" = "t",
+    "p-value" = "P",
+    "pvals" = "P"
+  )
+
+} 
+
+standardize_P <- function (x) {
+  if (x > .05) {
+    x <- "NS"
+  } else if (.01 < x & x <= .05) {
+    x <- "< 0.05"
+  } else if (.001 < x & x <= 0.01) {
+    x <- "< 0.01"
+  } else if (.0001 < x & x <= 0.001) {
+    x <- "< 0.001"
+  } else {
+    x <- "< 0.0001"
+  }
+  return(x)
+}

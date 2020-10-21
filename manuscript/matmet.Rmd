@@ -25,6 +25,7 @@ library(viridis)
 library(sf)
 library(vegan)
 library(kableExtra)
+library(knitr)
 source("../R/misc.R") # Define your custom code as a bunch of functions.
 source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 
@@ -33,7 +34,6 @@ source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 ```
 ```{r}
 myload(mynmds, envir = environment(), dir = get_mypath("data"))
-
 ```
 
 
@@ -46,13 +46,12 @@ problems.
 ## Environmental variables
 
 The coordinates of the sites, latitude and longitude, were recorded during
-sampling events. The site distance from its string and the site altitude were
+sampling events. The site distance from its spring and the site altitude were
 extracted thank to a stream network reconstruction. The stream network
 reconstruction was done with the R packages `openStars` and `SSN`
 [@kattwinkel_preparing_2020; @hoef_ssn:_2014].
 
 ## Statistical analysis
-
 
 Community composition was analyzed through Non Metric Dimensional Scaling
 (NMDS). The distance between community composition was computed with Bray-Curtis
@@ -63,13 +62,15 @@ onto the ordination (`envfit` function in the `vegan` package). The
 significativity of the fitted environmental variables through 999 permutations
 of the community coordinates.
 
-The species richness was modeled according to latitude, longitude, altitude and
-distance from string and the interaction between latitude and longitude, with a
+The species richness was modeled according to latitude, longitude, altitude,
+distance from spring and the type of substrate with a
 Poisson linear model. We found significative spatial autocorrelation in species
 richness (Moran test: $I = 0.19$, $P = 0.005$, Figure SXX). Then we modeled
 spatial correlation with an exponential correlation structure with `glmmPQL`
 function in the `MASS` package. The validity of the model was assessed with the
-visual inspection of the residuals.
+visual inspection of the residuals. We also checked for the absence of
+multicollinearity in the predictor variables with the Generalized Variance
+Inflation Factor that were all inferior to two.
 
 To assess assembly rules of mussels communities, we computed the cooccurence between
 species. Cooccurence patterns between species reflect the influence of
@@ -80,9 +81,105 @@ probability of occurrence of the two species multiplied by the total number of
 sites [@griffith_cooccur_2016]. The significativity of the association was
 assessed as ... with a threshold of 0.1, after the power analysis of
 @veech_probabilistic_2013. Only the species pairs with an expected cooccurence
-superior to 1 were kept in the analysis. Cooccurence analysis were done with the `cooccur` R package [@griffith_cooccur_2016].
+superior to 1 were kept in the analysis. Cooccurence analysis were done with the
+`cooccur` R package [@griffith_cooccur_2016].
 
 All the analysis were performed in R v3.6.3 [@r_core_team_r_2020] and the
 scripts used for the analysis are available online [https://github.com/alaindanet/prie_mussels](https://github.com/alaindanet/prie_mussels).
+
+# Results
+
+## Composition
+
+```{r nmds}
+myload(result_compo, envir = environment(), dir = get_mypath("data"))
+kable(result_compo, caption = "Result of the fit of environmental variables
+  onto ordination.") 
+
+```
+
+
+```{r}
+nmds_caption <- paste0(
+  "Non Metrics Dimensional Scaling of species composition. Each point represent
+  a site. The vectors represent the direction which the continuous variables
+  change the most fastly in the ordination space and the direction which they
+  have maximal correlation with the ordination. The label of the factors
+  represent their average position in the ordination space."
+
+) 
+```
+
+```{r nmds-p, fig.cap=nmds_caption}
+include_graphics(path = get_mypath("fig", "nmds.png"))
+```
+The variables latitude, longitude, substrate and string distance were
+significantly associated to the ordination axis, but not altitude (Figure
+\@ref(fig:nmds-p), Table \@ref(tab:nmds)). Latitude and longitude were the
+variables the most related to the community composition 
+(resp. $r^2 = `r result_compo$r[1]`$, $r^2 = `r result_compo$r[2]`$). 
+
+
+## Species richness
+
+```{r res-lm}
+myload(lm_res_tab, lm_res_tab_to_print, envir = environment(),
+  dir = get_mypath("data"))
+mod <- lm_res_tab
+bt_lm <- mod %>% 
+  mutate_at(c("Estimate", "SE"), exp)
+library(emmeans)
+out <- lapply(split(bt_lm, seq(1, nrow(bt_lm))), function(x) lapply(1:nrow(x), head, x = x)) %>%
+  unlist(bt_lm, recursive = FALSE)
+names(out) <- bt_lm$Term
+kable(lm_res_tab,
+  caption = "Estimates and standard errors associated to the linear model of
+  species richness.") %>%
+  kable_styling(c("striped", "hover"))
+```
+```{r}
+ci <- intervals(model.1, which = "fixed")$fixed %>%
+  as.data.frame %>%
+  rownames_to_column(var = "term")
+bt_ci  <- ci %>% 
+  mutate_at(c("lower", "est.", "upper"), ~round(exp(.), 2))
+```
+
+
+```{r}
+rich_cap <- paste0(
+  "Relationships between species richness and environmental variables, namely
+  (A) latitude, (B) longitude, (C) Distance from the source, (D) substrate type
+  and (E) altitude. ",
+  "Lines and ribbons represents respectively the mean prediction and its 95%
+  confidence interval. ",
+  "For (A) and (B), the chosen values of latitude and longitude correspond to
+  the first (in red), the second (in green) and the third quartile (in blue)."
+)
+#Is you used log(y) instead of y, the model is
+#log(y) = b0 + b1*x1 + b2*x2 + error
+#what can be written as
+#y = exp(b0 + b1*x1 + b2*x2 + error)
+   #= exp(b0) * exp(b1*x1) * exp(b2*x2) * exp(error)
+   #= exp(b0) * exp(b1)^x1 * exp(b2)^x2 * exp(error)
+#https://stats.idre.ucla.edu/r/faq/how-can-i-estimate-the-standard-error-of-transformed-regression-parameters-in-r-using-the-delta-method/
+```
+
+Analogously to community composition, species richness was significantly related
+to latitude,  
+We found that species richness increased by $`r bt_lm[["Latitude"]]$Estimate`$ 
+($`r bt_lm[["Latitude"]]$SE`$ se) with latitude .
+
+
+
+```{r rich-p, fig.cap=rich_cap}
+include_graphics(path = get_mypath("fig", "richness_model.png"))
+```
+ 
+
+
+## Cooccurence
+
+
 
 # References

@@ -55,14 +55,21 @@ myload(mynmds, envir = environment(), dir = get_mypath("data"))
 compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 #compo_env
 #https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
-plot(mynmds, type = "p")
+fig_nmds_path <- get_mypath("fig", "nmds.png")
+base_height_nmds <- 1500 
+png(
+  fig_nmds_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+plot(mynmds, display = "sites")
 #labels(compo_env)
 labels_mix <- list(
-  vectors = c("Lat", "Long", "SourceDist", "Alt"),
-  factors = c("Acid", "Calc", "Mixt"))
+  vectors = c("Lat", "Long", "SpringDist", "Alt"),
+  factors = c("Acid", "Calc", "Mixed"))
 plot(compo_env, p.max = 0.05, labels = labels_mix)
-title("Fit of Environmental Vectors/Factors onto composition 
-ordination")
+invisible(dev.off())
 ```
 
 ```{r}
@@ -84,8 +91,12 @@ result_compo <- rbind(
   left_join(tmp[[1]], tmp[[2]], by = "variable"),
   fac_compo_res
 )
-result_compo %>%
-  kable(format = "markdown")
+result_compo$variable %<>% str_replace_all(., get_replace_tab()) 
+result_compo$variable %<>% str_replace(., "substrat", "Subtrate") 
+colnames(result_compo) %<>% str_replace_all(., get_replace_tab())
+
+mysave(result_compo, dir = get_mypath("data"), overwrite = TRUE)
+kable(result_compo)
 ```
 
 # Species richness
@@ -101,7 +112,7 @@ library(gstat)
 library(spaMM)
 library(nlme)
 library(ggeffects)
-f1 <- richness ~ latitude*longitude + avAltA + upDist
+f1 <- richness ~ latitude + longitude + avAltA + upDist + substrat
 richness_env$group <- factor(rep("a",nrow(richness_env)))
 
 model.base <- glmmPQL(f1, random=~1|group,
@@ -124,35 +135,100 @@ model.1 <- glmmPQL(f1, random=~1|group,
 
 ```{r}
 res <- summary(model.1)
-res$tTable %>%
-  kable(format = "markdown")
+lm_vif <- car::vif(model.1)
+lm_res_tab <- res$tTable %>%
+  as_tibble(rownames = "Term") 
+# Change var names, round estimate 
+replace_tab <- get_replace_tab() 
+colnames(lm_res_tab) %<>% str_replace_all(., replace_tab)
+lm_res_tab$Term %<>% str_replace_all(., replace_tab)
+
+lm_res_tab_to_print <-  
+  lm_res_tab %>%
+  mutate_if(is.double, ~signif(., 2)) %>%
+  mutate_at(c("Estimate", "SE", "t"),
+    ~ifelse(abs(.) < 0.01,
+      formatC(., format = "e", digits = 2),
+      .)) %>%
+  mutate(P = map_chr(P, standardize_P))
+
+mysave(lm_res_tab, lm_res_tab_to_print, dir = get_mypath("data"), overwrite = TRUE)
+kable(lm_res_tab_to_print)
 ```
 
 ```{r fit-lat}
-fit <- richness_env %>% 
-  as_tibble %>%
-  mutate(pred_rich = exp(predict(model.1)))
-
-pred_rich_lat <- ggeffect(model.1, terms = c("latitude", "longitude [quart2]")) %>%
+pred_rich_lat <- ggeffect(model.1, terms = c("latitude")) %>%
   as_tibble()
-   
-p_rich_lat <- fit %>%
+p_rich_lat <- richness_env %>%
   ggplot(aes(y = richness, x = latitude)) +
   geom_point() +
-  geom_line(data = pred_rich_lat, aes(y = predicted, x = x, color = group), size
+  geom_line(data = pred_rich_lat, aes(y = predicted, x = x), size
     = 1) +
   geom_ribbon(data = pred_rich_lat,
-    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted, fill = group),
+    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted),
     , alpha = .2) +
-  scale_color_discrete("Longitude (deg.)") +
-  guides(fill = FALSE) +
+  #scale_color_discrete("Longitude (deg.)") +
+  #guides(fill = FALSE) +
   labs(y = "Species richness", x = "Latitude (deg.)") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+```{r}
+pred_rich_long <- ggeffect(model.1, terms = c("longitude")) %>%
+  as_tibble()
+p_rich_long <- richness_env %>%
+  ggplot(aes(y = richness, x = longitude)) +
+  geom_point() +
+  geom_line(data = pred_rich_long, aes(y = predicted, x = x), size
+    = 1) +
+  geom_ribbon(data = pred_rich_long,
+    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted),
+    , alpha = .2) +
+  #scale_color_discrete("Latitude (deg.)") +
+  #guides(fill = FALSE) +
+  labs(y = "Species richness", x = "Longitude (deg.)") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+pred_rich_alt <- ggeffect(model.1, terms = c("avAltA")) %>%
+  as_tibble()
+p_rich_alt <- richness_env %>%
+  ggplot(aes(y = richness, x = avAltA)) +
+  geom_point() +
+  geom_line(data = pred_rich_alt, aes(y = predicted, x = x), size
+    = 1) +
+  geom_ribbon(data = pred_rich_alt,
+    aes(ymin = conf.low, ymax = conf.high, x = x, y = predicted),
+    , alpha = .2) +
+  labs(y = "Species richness", x = "Altitude (m)") +
   theme_bw()
 ```
+
+```{r}
+pred_rich_substrate <- ggeffect(model.1, terms = c("substrat")) %>%
+  as_tibble()
+p_rich_substrate <- richness_env %>%
+  ggplot(aes(y = richness, x = substrat)) +
+  #geom_jitter() +
+  geom_point(data = pred_rich_substrate, aes(y = predicted, x = x), size
+    = 1) +
+  geom_linerange(data = pred_rich_substrate,
+    inherit.aes = FALSE,
+    aes(ymin = conf.low, ymax = conf.high, x = x),
+    , alpha = .8) +
+  scale_x_discrete(labels = c("Acid", "Calcareous", "Mixed")) +
+  labs(y = "Species richness", x = "Substrate") +
+  theme_bw()
+```
+
+
 ```{r}
 pred_rich_dist <- ggeffect(model.1, terms = c("upDist")) %>%
   as_tibble()
-p_rich_dist <- fit %>%
+p_rich_dist <- richness_env %>%
   ggplot(aes(y = richness, x = upDist)) +
   geom_point() +
   geom_line(data = pred_rich_dist, aes(y = predicted, x = x), size
@@ -162,12 +238,15 @@ p_rich_dist <- fit %>%
     , alpha = .2) +
   labs(y = "Species richness", x = "Distance from source (m)") +
   theme_bw()
-p_rich <- plot_grid(p_rich_lat, p_rich_dist,
-  labels = "AUTO", rel_widths = c(1, .8))
+```
+
+```{r}
+p_rich <- plot_grid(p_rich_lat, p_rich_long, p_rich_dist, p_rich_substrate,
+  p_rich_alt, labels = "AUTO", rel_heights = c(1, 1, 1), ncol = 2)
 save_plot(
   p_rich,
   filename = get_mypath("fig", "richness_model.png"),
-  base_height = 4, base_asp = 2.618
+  base_height = 7, base_asp = 1.118
 )
 p_rich
 ```
