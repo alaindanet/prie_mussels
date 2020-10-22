@@ -3,7 +3,8 @@ title: Material & Methods
 date: "`r Sys.Date()`"
 bibliography: references.bib
 output:
-  html_document:
+  bookdown::html_document2:
+    number_sections: false 
     fig_caption: true
     self_contained: true 
 ---
@@ -93,10 +94,13 @@ scripts used for the analysis are available online [https://github.com/alaindane
 
 ## Composition
 
-```{r nmds}
+```{r nmds-test}
 myload(result_compo, envir = environment(), dir = get_mypath("data"))
-kable(result_compo, caption = "Result of the fit of environmental variables
-  onto ordination.") 
+kable(result_compo,
+  label = "nmds",
+  caption = "Result of the fit of environmental variables
+  onto ordination.")  %>%
+  kable_styling(c("striped", "hover"))
 
 ```
 
@@ -112,12 +116,12 @@ nmds_caption <- paste0(
 ) 
 ```
 
-```{r nmds-p, fig.cap=nmds_caption}
+```{r nmds, fig.cap=nmds_caption}
 include_graphics(path = get_mypath("fig", "nmds.png"))
 ```
 The variables latitude, longitude, substrate and string distance were
 significantly associated to the ordination axis, but not altitude (Figure
-\@ref(fig:nmds-p), Table \@ref(tab:nmds)). Latitude and longitude were the
+\@ref(fig:nmds), Table \@ref(tab:nmds)). Latitude and longitude were the
 variables the most related to the community composition 
 (resp. $r^2 = `r signif(result_compo$r[1], 2)`$,
 $r^2 = `r signif(result_compo$r[2], 2)`$). 
@@ -135,12 +139,15 @@ bt_lm <- mod %>%
     `SE (original scale)` = `Estimate (original scale)` * SE,
     lower = Estimate - 1.96*SE, 
     upper = Estimate + 1.96*SE, 
-  )
+  ) %>%
+mutate_if(is.double, ~signif(., 2))
+
 
 out <- lapply(split(bt_lm, seq(1, nrow(bt_lm))), function(x) lapply(1:nrow(x), head, x = x)) %>%
   unlist(bt_lm, recursive = FALSE)
 names(out) <- bt_lm$Term
 kable(lm_res_tab,
+  label = "rich",
   caption = "Estimates and standard errors associated to the linear model of
   species richness.") %>%
   kable_styling(c("striped", "hover"))
@@ -175,19 +182,19 @@ rich_cap <- paste0(
 #http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.47.9023&rep=rep1&type=pdf
 ```
 
-Analogously to community composition, species richness was significantly related
-to latitude, sprin,
 We found that species richness increase by $`r out[["Latitude"]]$Estimate`$
 log-unit ($`r out[["Latitude"]]$SE`$ se) by latitude degree and increased by
-$`r out[["Spring distance"]]$Estimate`$ log-unit ($`r out[["Spring
-distance"]]$SE`$ se) by meter distance from the spring. However, longitude and
+$`r out[["Spring distance"]]$Estimate`$ log-unit 
+($`r out[["Spring distance"]]$SE`$ se) by meter distance from the spring (Figure
+\@ref(fig:rich), Table \@ref(tab:rich)).
+However, longitude and
 altitude had no significant effects on species richness. We further found that
 species richness was higher in acid and mixed substrate than in calcareous
 substrate (respectively $`r out[["Acid"]]$Estimate`$ log-unit, 
 $`r out[["Acid"]]$SE`$ se and $`r out[["Mixed"]]$Estimate`$ log-unit,
 $`r out[["Mixed"]]$SE`$ se).
 
-```{r rich-p, fig.cap=rich_cap}
+```{r rich, fig.cap=rich_cap}
 include_graphics(path = get_mypath("fig", "richness_model.png"))
 ```
 

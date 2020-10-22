@@ -55,7 +55,7 @@ library(vegan)
 ```
 
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 mynmds <- metaMDS(mat_nmds, 
   distance = "bray",
   k = 3,
@@ -76,8 +76,7 @@ nmds2 <- metaMDS(mat_nmds,
   previous.best = mynmds
 )
 mysave(mynmds, nmds2, dir = get_mypath("data"), overwrite = TRUE)
-```
-
+``` 
 ```{r, eval = TRUE}
 myload(mynmds, nmds2, envir = environment(), dir = get_mypath("data"))
 
@@ -135,7 +134,7 @@ big_sp_mat <- mat_nmds[, colnames(mat_nmds) %in% big_sp]
 
 ## Composition analysis (big species)
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 # Rm empty rows
 mat_nmds_big_sp <- big_sp_mat[rowSums(big_sp_mat) > 0, ]
 station_analysis_big_sp <- station_analysis[rowSums(big_sp_mat) > 0, ]
@@ -288,7 +287,7 @@ richness %>%
 ```{r}
 richness %>%
   filter(! basin %in% c("RHIN", "ESCAUT SOMME")) %>%
-  pivot_longer(cols = c(cflum:swoo), names_to = "invasive_sp", values_to = "pa") %>%
+  pivot_longer(cols = c(dpol:stra), names_to = "invasive_sp", values_to = "pa") %>%
   ggplot(aes(x = as.factor(pa), y = richness_native)) +
   geom_boxplot() +
   facet_grid(invasive_sp~basin) +
@@ -416,7 +415,7 @@ moran.mc(sp_station$richness, ww, nsim=200, na.action = na.omit)
 test <- moran(sp_station$richness, ww, length(neib), Szero(ww))
 moran.plot(sp_station$richness, ww)
 
-richness_env$pos <- numFactor(coordinates(sp_station)[,1], coordinates(sp_station)[,2])
+richness_env$pos <- glmmTMB::numFactor(coordinates(sp_station)[,1], coordinates(sp_station)[,2])
 richness_env$x <- coordinates(sp_station)[,1]
 richness_env$y <- coordinates(sp_station)[,2]
 mysave(richness_env, dir = get_mypath("data"), overwrite = TRUE)
@@ -684,7 +683,7 @@ library(beepr)
 species_names <- colnames(mat)[!colnames(mat) %in% "site"] 
 site_names <- mat$site 
 
-t_mat <- as.data.frame(t(mat[,-ncol(mat)]))
+t_mat <- as.data.frame(t(mat[,colnames(mat) != "site"]))
 colnames(t_mat) <- site_names 
 rownames(t_mat) <- species_names 
 
@@ -712,34 +711,6 @@ if (!file.exists(file_cooc)) {
     dir = get_mypath("data")
   )
 } 
-```
-
-
-```{r, eval = FALSE}
-
-## Co-occurence pair between species 
-p <- plot(cooc_bivalve)
-
-dfids <- subset(assos_mat, sp1_name == sp2_name) %>%
-  rename(X1 = sp1_name, X2 = sp2_name)
-dfids %<>%
-  mutate(
-    color_sp = ifelse(dfids$X1 %in% big_sp, "red", "green")
-  )
-
-
-#dfids
-p +
-  geom_text(data = dfids, aes(label=X1, color = color_sp), hjust=1,vjust=0,angle = -22.5) +
-  scale_color_manual(values = c("green","red"), name = "Species type", labels = c("little","big"),drop=FALSE)
-
-## Association profile by species
-p2 <- pair.profile(cooc_bivalve)
-#p2 +
-  #theme(axis.text.x = element_text(colour = color_sp))
-
-ggsave(filename = "fig/co-occurrence_bivalves.pdf", plot = p)
-ggsave(filename = "fig/association_profile_bivalves.pdf", plot = p2)
 ```
 
 ```{r, eval = FALSE}
@@ -789,4 +760,32 @@ write_csv2(assos_mat_vincent_strength, path = get_mypath("data-raw", "species_as
     #ggtitle("Species Co-occurrence Matrix") + 
     #xlab("") + ylab("")
 ```
+
+```{r, eval = FALSE}
+
+## Co-occurence pair between species 
+p <- plot(cooc_bivalve)
+
+dfids <- subset(assos_mat, sp1_name == sp2_name) %>%
+  rename(X1 = sp1_name, X2 = sp2_name)
+dfids %<>%
+  mutate(
+    color_sp = ifelse(dfids$X1 %in% big_sp, "red", "green")
+  )
+
+
+#dfids
+p +
+  geom_text(data = dfids, aes(label=X1, color = color_sp), hjust=1,vjust=0,angle = -22.5) +
+  scale_color_manual(values = c("green","red"), name = "Species type", labels = c("little","big"),drop=FALSE)
+
+## Association profile by species
+p2 <- pair.profile(cooc_bivalve)
+#p2 +
+  #theme(axis.text.x = element_text(colour = color_sp))
+
+ggsave(filename = "~/Dropbox/_Review/fig_alain/co-occurrence_bivalves.pdf", plot = p)
+ggsave(filename = "~/Dropbox/_Review/fig_alain/association_profile_bivalves.pdf", plot = p2)
+```
+
 

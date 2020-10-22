@@ -55,7 +55,8 @@ myload(mynmds, envir = environment(), dir = get_mypath("data"))
 compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 #compo_env
 #https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
-fig_nmds_path <- get_mypath("fig", "nmds.png")
+fig_nmds_path <- "~/Dropbox/_Review/fig_alain/nmds.png" 
+#fig_nmds_path <- get_mypath("fig", "nmds.png")
 base_height_nmds <- 1500 
 png(
   fig_nmds_path,
@@ -251,7 +252,8 @@ p_rich <- plot_grid(p_rich_lat, p_rich_long, p_rich_dist, p_rich_substrate,
   p_rich_alt, labels = "AUTO", rel_heights = c(1, 1, 1), ncol = 2)
 save_plot(
   p_rich,
-  filename = get_mypath("fig", "richness_model.png"),
+  #filename = get_mypath("fig", "richness_model.png"),
+  filename = "~/Dropbox/_Review/fig_alain/richness_model.png",
   base_height = 7, base_asp = 1.118
 )
 p_rich
@@ -414,7 +416,8 @@ cooc_plot <- test %>%
 ```
 
 ```{r}
-fig_dir <- get_mypath("fig")
+#fig_dir <- get_mypath("fig")
+fig_dir <- "~/Dropbox/_Review/fig_alain" 
 if (!dir.exists(fig_dir)) {
   dir.create(fig_dir)
 }
