@@ -167,10 +167,8 @@ rich_cap <- paste0(
   "Relationships between species richness and environmental variables, namely
   (A) latitude, (B) longitude, (C) Distance from the source, (D) substrate type
   and (E) altitude. ",
-  "Lines and ribbons represents respectively the mean prediction and its 95%
-  confidence interval. ",
-  "For (A) and (B), the chosen values of latitude and longitude correspond to
-  the first (in red), the second (in green) and the third quartile (in blue)."
+  "Line and ribbon represent respectively the mean prediction and its 95%
+  confidence interval. "
 )
 #Is you used log(y) instead of y, the model is
 #log(y) = b0 + b1*x1 + b2*x2 + error

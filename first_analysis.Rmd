@@ -37,9 +37,12 @@ myload(mat, station_analysis, species_attributes,
 )
 # Remove useless site
   station_analysis %<>%
-    filter(site %in% mat$site)
+    filter(site %in% mat$site) %>%
+    arrange(as.integer(site))
   mat %<>%
-    filter(site %in% station_analysis$site)
+    filter(site %in% station_analysis$site) %>%
+    arrange(as.integer(site))
+
 
 mat_nmds <- mat[, -which(colnames(mat) == "site")] 
 
@@ -98,11 +101,9 @@ title("Latitude (Degree)")
 ordisurf(mynmds, station_analysis$longitude, main="",col="forestgreen")
 title("Longitude (Degree)")
 
-
 ordiplot(mynmds)
 ordiellipse(mynmds, groups = station_analysis$substrat, draw="polygon", col="grey90", label= TRUE)
 title("Substrat (Calcaire, Acide, Mixte)")
-
 
 ordiplot(mynmds, type = "points")
 ordiellipse(mynmds, groups = station_analysis$type, draw="polygon", col="grey90", label= TRUE)

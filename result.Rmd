@@ -53,9 +53,21 @@ all(station_analysis$site == mat$site)
 myload(mynmds, envir = environment(), dir = get_mypath("data"))
 
 compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
+
+
+fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/fig/nmds.png" 
+#debugonce(plot_nmds_envfit)
+g <- plot_nmds_envfit(mynmds, compo_env,
+  arrow_scale = 1.75,
+  vec_label_dist = 0.07,
+  col_vec_label = "blue",
+  col_fac_label = "red",
+)
+save_plot(filename = fig_nmds_path, plot = g, base_asp = 1)
+
+
 #compo_env
 #https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
-fig_nmds_path <- "~/Dropbox/_Review/fig_alain/nmds.png" 
 #fig_nmds_path <- get_mypath("fig", "nmds.png")
 base_height_nmds <- 1500 
 png(
