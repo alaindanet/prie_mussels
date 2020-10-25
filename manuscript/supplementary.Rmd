@@ -109,13 +109,12 @@ png(
   height = base_height_nmds,
   res = 300 
 )
-moran.plot(sp_station$richness, ww)
-title(xlab = "Species richness", ylab = "Spatially lagged species richness")
+moran.plot(sp_station$richness, ww, xlab = "Species richness", ylab = "Spatially lagged species richness" )
+
 invisible(dev.off())
 ```
 
 ```{r moran, fig.cap="Moran plot. Spatially lagged sites shows correlation."}
-#include_graphics(fig_moran_path)
 ggdraw() + draw_image(image = fig_moran_path)
 ```
 
@@ -182,8 +181,7 @@ png(
   height = base_height_nmds,
   res = 300 
 )
-plot(y = residuals(model.1), x = predict(model.1))
-title(ylab = "Model residuals", xlab = "Prediction of the model")
+plot(y = residuals(model.1), x = predict(model.1), ylab = "Model residuals", xlab = "Prediction of the model")
 invisible(dev.off())
 ```
 
@@ -192,7 +190,6 @@ resid_cap <- "Residuals of the linear model of species richness versus predicted
 values."
 ```
 ```{r, fig.cap=resid_cap}
-#include_graphics(fig_resid_path)
 ggdraw() + draw_image(image = fig_resid_path)
 ```
 

@@ -38,7 +38,7 @@ source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 
 ```
 ```{r}
-myload(mynmds, envir = environment(), dir = get_mypath("data"))
+myload(mynmds, result_compo, envir = environment(), dir = get_mypath("data"))
 ```
 
 
@@ -83,10 +83,12 @@ limitation. The expected cooccurence between species pairs was compared to
 observed cooccurence.  The expected cooccurence between a species pair is simply
 the product of the probability of occurrence of the two species multiplied by
 the total number of sites [@griffith_cooccur_2016]. The significativity of the
-species cooccurence was assessed following the probabilistic model of @veech_probabilistic_2013,
-with $\alpha = .1$. Only the species pairs with an expected
-cooccurence superior to 1 were kept in the analysis. The analysis of species
-cooccurence were done with the `cooccur` R package [@griffith_cooccur_2016].
+species cooccurence was assessed following the probabilistic model of
+@veech_probabilistic_2013, with $\alpha = .1$. On the 780 species pair
+combinations, 247 pairs (31.67 %)
+were removed because they have an expected cooccurence superior to 1 were kept
+in the analysis. The analysis of species cooccurence were done with the
+`cooccur` R package [@griffith_cooccur_2016].
 
 All the analysis were performed in R v3.6.3 [@r_core_team_r_2020] and the
 scripts used for the analysis are available online [https://github.com/alaindanet/prie_mussels](https://github.com/alaindanet/prie_mussels).
@@ -96,7 +98,6 @@ scripts used for the analysis are available online [https://github.com/alaindane
 ## Composition
 
 ```{r nmds-test}
-myload(result_compo, envir = environment(), dir = get_mypath("data"))
 kable(result_compo,
   label = "nmds",
   caption = "Result of the fit of environmental variables
@@ -153,6 +154,7 @@ kable(lm_res_tab,
   species richness.") %>%
   kable_styling(c("striped", "hover"))
 ```
+
 ```{r}
 myload(model.1, envir = environment(), dir = get_mypath("data"))
 ci <- intervals(model.1, which = "fixed")$fixed %>%
@@ -161,7 +163,6 @@ ci <- intervals(model.1, which = "fixed")$fixed %>%
 bt_ci <- ci %>% 
   mutate_at(c("lower", "est.", "upper"), ~round(exp(.), 2))
 ```
-
 
 ```{r}
 rich_cap <- paste0(
@@ -185,11 +186,12 @@ We found that species richness increase by $`r out[["Latitude"]]$Estimate`$
 log-unit ($`r out[["Latitude"]]$SE`$ se) by latitude degree and increased by
 $`r out[["Spring distance"]]$Estimate`$ log-unit 
 ($`r out[["Spring distance"]]$SE`$ se) by meter distance from the spring (Figure
-\@ref(fig:rich), Table \@ref(tab:rich)).
-However, longitude and
-altitude had no significant effects on species richness. We further found that
-species richness was higher in acid and mixed substrate than in calcareous
-substrate (respectively $`r out[["Acid"]]$Estimate`$ log-unit, 
+\@ref(fig:rich), Table \@ref(tab:rich)). Species richness increased from 7.5 in
+the south to 12.5 to the north of France while 9 in the vinicity of the springs
+to 12 at 800km of the springs.  However, longitude and altitude had no
+significant effects on species richness. We further found that
+species richness was higher in acid and mixed substrate (9.5 species) than in calcareous
+substrate (7.25 species; respectively the effects were of $`r out[["Acid"]]$Estimate`$ log-unit, 
 $`r out[["Acid"]]$SE`$ se and $`r out[["Mixed"]]$Estimate`$ log-unit,
 $`r out[["Mixed"]]$SE`$ se).
 
@@ -198,6 +200,28 @@ include_graphics(path = get_mypath("fig", "richness_model.png"))
 ```
 
 ## Cooccurence
+
+```{r}
+myload(cooc_bivalve, envir = environment(), dir = get_mypath("data"))
+sum_cooc <- summary(cooc_bivalve)
+```
+
+```{r co-mat}
+ggdraw() + draw_image(image =
+  "~/Dropbox/_0_MollEcol_2/_Review/Figures/assos_matrix.png")
+```
+
+
+Over the 533 species pairs analyzed, `r sum_cooc["Random"]` pairs were clasified
+as random, `r sum_cooc["Positive"]` as positive and only
+`r sum_cooc["Negative"]` as negative (Figure \@ref(fig:co-mat)). Swoo had the
+most number of significant negative cooccurence with the other species while
+Ehen had the most number of significant positive cooccurence (Figure \@ref(fig:co-mat)).
+
+
+```{r co-pair}
+ggdraw() + draw_image(image = "~/Dropbox/_0_MollEcol_2/_Review/Figures/pair_profile.png")
+```
 
 
 # References

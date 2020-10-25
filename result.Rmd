@@ -293,9 +293,7 @@ t_mat <- as.data.frame(t(mat[,!colnames(mat) %in% "site"]))
 colnames(t_mat) <- site_names 
 rownames(t_mat) <- species_names 
 
-#rowSums(t_mat)
-#rowMeans(t_mat)
-#colSums(t_mat) %>% hist 
+mat
 
 #t_mat %<>%
   #mutate_all(.funs = as.integer)
@@ -320,14 +318,32 @@ if (!file.exists(file_cooc)) {
 ```
 
 ```{r}
-pair_p <- pair.profile(cooc_bivalve)
+pair_p <- pair.profile(cooc_bivalve) 
+levels(pair_p$data$sppname) %<>% str_to_title
+
+test <- pair_p +
+  theme(legend.position = "bottom",
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    text = element_text(size = 10)
+  )
 save_plot(filename = "~/Dropbox/_0_MollEcol_2/_Review/Figures/pair_profile.png",
-  pair_p)
+  test, base_height = 5)
 ```
 
 ```{r}
-HERE
-#plot matrix of cooccurences
+mat_cooccur <- plot(cooc_bivalve, randsummary = FALSE)
+source(get_mypath("R", "plot_methods.R"))
+mat_cooccur_test <- my_cooccur_plot(cooc_bivalve) +
+  theme(legend.position = "bottom",
+    #axis.text = element_text(size = 10),
+    plot.margin = rep(unit(0, "pt"),4),
+    #axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    text = element_text(size = 10)
+  )
+
+save_plot(filename = "~/Dropbox/_0_MollEcol_2/_Review/Figures/assos_matrix.png",
+  mat_cooccur_test, base_height = 5)
 ```
 
 
