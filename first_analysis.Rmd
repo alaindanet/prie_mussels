@@ -78,7 +78,8 @@ nmds2 <- metaMDS(mat_nmds,
   #noshare =  TRUE,
   previous.best = mynmds
 )
-mysave(mynmds, nmds2, dir = get_mypath("data"), overwrite = TRUE)
+mysave(mynmds, nmds2, mat, dir = get_mypath("data"), overwrite = TRUE)
+
 ``` 
 ```{r, eval = TRUE}
 myload(mynmds, nmds2, envir = environment(), dir = get_mypath("data"))
@@ -420,6 +421,7 @@ richness_env$pos <- glmmTMB::numFactor(coordinates(sp_station)[,1], coordinates(
 richness_env$x <- coordinates(sp_station)[,1]
 richness_env$y <- coordinates(sp_station)[,2]
 mysave(richness_env, dir = get_mypath("data"), overwrite = TRUE)
+mysave(sf_station, sp_station, dir = get_mypath("data"), overwrite = TRUE)
 ```
 
 ### Spatial model

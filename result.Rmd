@@ -50,12 +50,18 @@ all(station_analysis$site == mat$site)
 # Composition
 
 ```{r}
-myload(mynmds, envir = environment(), dir = get_mypath("data"))
+myload(mynmds, mat, envir = environment(), dir = get_mypath("data"))
+
+station_analysis %<>%
+  filter(site %in% mat$site) %>%
+  arrange(as.integer(site))
+
+stopifnot(all(station_analysis$site == mat$site))
 
 compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude, upDist, avAltA, substrat), permutations = 999, na.rm = TRUE)
 
 
-fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/fig/nmds.png" 
+fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/nmds.png" 
 #debugonce(plot_nmds_envfit)
 g <- plot_nmds_envfit(mynmds, compo_env,
   arrow_scale = 1.75,
@@ -69,20 +75,20 @@ save_plot(filename = fig_nmds_path, plot = g, base_asp = 1)
 #compo_env
 #https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
 #fig_nmds_path <- get_mypath("fig", "nmds.png")
-base_height_nmds <- 1500 
-png(
-  fig_nmds_path,
-  width = base_height_nmds*1.0,
-  height = base_height_nmds,
-  res = 300 
-)
-plot(mynmds, display = "sites")
-#labels(compo_env)
-labels_mix <- list(
-  vectors = c("Lat", "Long", "SpringDist", "Alt"),
-  factors = c("Acid", "Calc", "Mixed"))
-plot(compo_env, p.max = 0.05, labels = labels_mix)
-invisible(dev.off())
+#base_height_nmds <- 1500 
+#png(
+  #fig_nmds_path,
+  #width = base_height_nmds*1.0,
+  #height = base_height_nmds,
+  #res = 300 
+#)
+#plot(mynmds, display = "sites")
+##labels(compo_env)
+#labels_mix <- list(
+  #vectors = c("Lat", "Long", "SpringDist", "Alt"),
+  #factors = c("Acid", "Calc", "Mixed"))
+#plot(compo_env, p.max = 0.05, labels = labels_mix)
+#invisible(dev.off())
 ```
 
 ```{r}
@@ -171,7 +177,7 @@ lm_res_tab_to_print <-
       .)) %>%
   mutate(P = map_chr(P, standardize_P))
 
-mysave(model.1, lm_res_tab, lm_res_tab_to_print, dir = get_mypath("data"), overwrite = TRUE)
+mysave(model.base, model.1, lm_res_tab, lm_res_tab_to_print, dir = get_mypath("data"), overwrite = TRUE)
 kable(lm_res_tab_to_print)
 ```
 
@@ -265,7 +271,7 @@ p_rich <- plot_grid(p_rich_lat, p_rich_long, p_rich_dist, p_rich_substrate,
 save_plot(
   p_rich,
   #filename = get_mypath("fig", "richness_model.png"),
-  filename = "~/Dropbox/_Review/fig_alain/richness_model.png",
+  filename = "~/Dropbox/_0_MollEcol_2/_Review/Figures/richness_model.png",
   base_height = 7, base_asp = 1.118
 )
 p_rich
@@ -283,7 +289,7 @@ library(beepr)
 species_names <- colnames(mat)[!colnames(mat) %in% "site"] 
 site_names <- mat$site 
 
-t_mat <- as.data.frame(t(mat[,-ncol(mat)]))
+t_mat <- as.data.frame(t(mat[,!colnames(mat) %in% "site"]))
 colnames(t_mat) <- site_names 
 rownames(t_mat) <- species_names 
 
@@ -291,9 +297,9 @@ rownames(t_mat) <- species_names
 #rowMeans(t_mat)
 #colSums(t_mat) %>% hist 
 
-test <- t_mat %>%
-  mutate_all(.funs = as.integer)
-rownames(test) <- species_names 
+#t_mat %<>%
+  #mutate_all(.funs = as.integer)
+#rownames(test) <- species_names 
 ```
 
 ```{r}
@@ -312,6 +318,19 @@ if (!file.exists(file_cooc)) {
   )
 } 
 ```
+
+```{r}
+pair_p <- pair.profile(cooc_bivalve)
+save_plot(filename = "~/Dropbox/_0_MollEcol_2/_Review/Figures/pair_profile.png",
+  pair_p)
+```
+
+```{r}
+HERE
+#plot matrix of cooccurences
+```
+
+
 
 ```{r}
 #cooc_bivalve
@@ -429,7 +448,7 @@ cooc_plot <- test %>%
 
 ```{r}
 #fig_dir <- get_mypath("fig")
-fig_dir <- "~/Dropbox/_Review/fig_alain" 
+fig_dir <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/fig cooc" 
 if (!dir.exists(fig_dir)) {
   dir.create(fig_dir)
 }

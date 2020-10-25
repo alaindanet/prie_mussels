@@ -1,0 +1,199 @@
+---
+title: Supplementary material 
+date: "`r Sys.Date()`"
+bibliography: references.bib
+output:
+  bookdown::html_document2:
+    number_sections: false 
+    fig_caption: true
+    self_contained: true 
+---
+
+```{r}
+knitr::opts_chunk$set(
+  cache = TRUE,
+  collapse = TRUE,
+  comment = "#>",
+  #fig.dim = c(7, 7),
+  fig.fullwidth = TRUE,
+  fig.show = "hold",
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  results = TRUE 
+)
+
+library(tidyverse)
+library(magrittr)
+library(cowplot)
+library(viridis)
+library(sf)
+library(vegan)
+library(kableExtra)
+library(knitr)
+source("../R/misc.R") # Define your custom code as a bunch of functions.
+source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
+
+#theme_set(theme_cowplot())
+
+```
+
+# Non Metrics Dimensional Scaling 
+
+```{r stress, fig.cap = "Stress plot for the NMDS analysis."}
+myload(mynmds, envir = environment(), dir = get_mypath("data"))
+
+fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/stress-nmds.png" 
+base_height_nmds <- 1500 
+png(
+  fig_nmds_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+vegan::stressplot(mynmds)
+title(main = paste0("Stress = ", round(mynmds$stress, 2)))
+invisible(dev.off())
+```
+
+```{r stress-p, fig.cap="Stress plot of the NMDS analysis on community composition"}
+#knitr::include_graphics(fig_nmds_path)
+ggdraw() + draw_image(image = fig_nmds_path)
+```
+
+# Species Richness model
+
+
+## Spatial autocorrelation 
+
+```{r}
+library(spdep)
+library(sp)
+myload(sp_station, region_polygon, envir = environment(), dir = get_mypath("data"))
+knea <- knearneigh(coordinates(sp_station), k = 2, longlat = FALSE)
+neib <- knn2nb(knea)
+
+
+fig_neigh_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/site_neigh.png" 
+base_height_nmds <- 1500 
+png(
+  fig_neigh_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+
+plot(st_geometry(st_transform(region_polygon, crs = 2154)))
+plot(neib, coordinates(sp_station), add = TRUE)
+title(main="K nearest neighbours, k = 2")
+invisible(dev.off())
+
+```
+
+```{r, fig.cap="Sites considered with their two nearest neighbors."}
+#include_graphics(fig_neigh_path)
+ggdraw() + draw_image(image = fig_neigh_path)
+```
+
+
+```{r}
+ww <- nb2listw(neib, style='B')
+moran <- moran.mc(sp_station$richness, ww, nsim=200, na.action = na.omit)
+test <- moran(sp_station$richness, ww, length(neib), Szero(ww))
+
+fig_moran_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/moran_plot.png" 
+base_height_nmds <- 1500 
+png(
+  fig_moran_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+moran.plot(sp_station$richness, ww)
+title(xlab = "Species richness", ylab = "Spatially lagged species richness")
+invisible(dev.off())
+```
+
+```{r moran, fig.cap="Moran plot. Spatially lagged sites shows correlation."}
+#include_graphics(fig_moran_path)
+ggdraw() + draw_image(image = fig_moran_path)
+```
+
+## Linear model validity check 
+
+```{r}
+myload(model.base, model.1, envir = environment(), dir = get_mypath("data"))
+library(spaMM)
+```
+
+```{r vif}
+lm_vif <- car::vif(model.1) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Term") %>%
+  mutate(Term = str_replace_all(Term, get_replace_tab()))
+
+kable(lm_vif,
+  caption = "Generalized variance inflation factor corresponding the
+  linear model formulated for species richness") %>%
+  kable_styling(c("striped", "hover"))
+```
+
+```{r}
+fig_vario_no_sp_path <-
+  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_no_spatial.png" 
+base_height_nmds <- 1500 
+png(
+  fig_vario_no_sp_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+plot(Variogram(model.base), main = "Model with no spatial Structure")
+invisible(dev.off())
+
+fig_vario_sp_path <-
+  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_spatial.png" 
+base_height_nmds <- 1500 
+png(
+  fig_vario_sp_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+plot(Variogram(model.1), main = "Model with spatial Structure")
+invisible(dev.off())
+```
+
+
+```{r vario, fig.show = "hold", fig.cap = "Semi-Variogram of the residuals according to the distance between sites."}
+
+p0 <- ggdraw() + draw_image(image = fig_vario_no_sp_path)
+p1 <- ggdraw() + draw_image(image = fig_vario_sp_path)
+plot_grid(p0, p1, labels = "AUTO")
+```
+
+```{r}
+fig_resid_path <-
+  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/resid_richness_model.png" 
+base_height_nmds <- 1500
+png(
+  fig_resid_path,
+  width = base_height_nmds*1.0,
+  height = base_height_nmds,
+  res = 300 
+)
+plot(y = residuals(model.1), x = predict(model.1))
+title(ylab = "Model residuals", xlab = "Prediction of the model")
+invisible(dev.off())
+```
+
+```{r}
+resid_cap <- "Residuals of the linear model of species richness versus predicted
+values."
+```
+```{r, fig.cap=resid_cap}
+#include_graphics(fig_resid_path)
+ggdraw() + draw_image(image = fig_resid_path)
+```
+
+# Co-occurence analysis

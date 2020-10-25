@@ -72,20 +72,21 @@ richness (Moran test: $I = 0.19$, $P = 0.005$, Figure SXX). Then we modeled
 spatial correlation with an exponential correlation structure with `glmmPQL`
 function in the `MASS` package. The validity of the model was assessed with the
 visual inspection of the residuals. We also checked for the absence of
-multicollinearity in the predictor variables with the Generalized Variance
+multicollinearity in the model specification with the Generalized Variance
 Inflation Factor that were all inferior to two.
 
-To assess assembly rules of mussels communities, we computed the cooccurence between
-species. Cooccurence patterns between species reflect the influence of
-environmental constraints, species interactions and dispersal limitation. The
-expected cooccurence between species pairs was compared to observed cooccurence.
-The expected cooccurence between a species pair is simply the product of the
-probability of occurrence of the two species multiplied by the total number of
-sites [@griffith_cooccur_2016]. The significativity of the association was
-assessed as ... with a threshold of 0.1, after the power analysis of
-@veech_probabilistic_2013. Only the species pairs with an expected cooccurence
-superior to 1 were kept in the analysis. Cooccurence analysis were done with the
-`cooccur` R package [@griffith_cooccur_2016].
+
+With the aim to get the assembly rules driving mussels community composition, we
+computed species cooccurence. Cooccurence patterns between species translate
+the influence of environmental constraints, species interactions and dispersal
+limitation. The expected cooccurence between species pairs was compared to
+observed cooccurence.  The expected cooccurence between a species pair is simply
+the product of the probability of occurrence of the two species multiplied by
+the total number of sites [@griffith_cooccur_2016]. The significativity of the
+species cooccurence was assessed following the probabilistic model of @veech_probabilistic_2013,
+with $\alpha = .1$. Only the species pairs with an expected
+cooccurence superior to 1 were kept in the analysis. The analysis of species
+cooccurence were done with the `cooccur` R package [@griffith_cooccur_2016].
 
 All the analysis were performed in R v3.6.3 [@r_core_team_r_2020] and the
 scripts used for the analysis are available online [https://github.com/alaindanet/prie_mussels](https://github.com/alaindanet/prie_mussels).
@@ -124,7 +125,7 @@ significantly associated to the ordination axis, but not altitude (Figure
 \@ref(fig:nmds), Table \@ref(tab:nmds)). Latitude and longitude were the
 variables the most related to the community composition 
 (resp. $r^2 = `r signif(result_compo$r[1], 2)`$,
-$r^2 = `r signif(result_compo$r[2], 2)`$). 
+$r^2 = `r signif(result_compo$r[2], 2)`$).
 
 
 ## Species richness
