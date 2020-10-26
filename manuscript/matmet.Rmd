@@ -101,9 +101,9 @@ scripts used for the analysis are available online [https://github.com/alaindane
 kable(result_compo,
   label = "nmds",
   caption = "Result of the fit of environmental variables
-  onto ordination.")  %>%
-  kable_styling(c("striped", "hover"))
-
+  onto ordination. r is the squared correlation coefficient between variable vectors and
+  the ordination.")  %>% kable_styling(c("striped", "hover"))
+envfit
 ```
 
 
@@ -124,7 +124,7 @@ include_graphics(path = get_mypath("fig", "nmds.png"))
 The variables latitude, longitude, substrate and string distance were
 significantly associated to the ordination axis, but not altitude (Figure
 \@ref(fig:nmds), Table \@ref(tab:nmds)). Latitude and longitude were the
-variables the most related to the community composition 
+variables the most related to the community composition
 (resp. $r^2 = `r signif(result_compo$r[1], 2)`$,
 $r^2 = `r signif(result_compo$r[2], 2)`$).
 
