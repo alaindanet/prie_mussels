@@ -38,7 +38,11 @@ source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 
 ```
 ```{r}
-myload(mynmds, result_compo, envir = environment(), dir = get_mypath("data"))
+myload(mynmds, result_compo, richness_env, envir = environment(), dir = get_mypath("data"))
+```
+
+```{r, eval = FALSE}
+quantile(richness_env$avAltA, .9, na.rm = TRUE)
 ```
 
 

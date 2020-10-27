@@ -38,7 +38,8 @@ myload(mat, station_analysis, species_attributes,
 )
 # Remove useless site
   station_analysis %<>%
-    filter(site %in% mat$site)
+    filter(site %in% mat$site) %>%
+    arrange(as.integer(site))
   mat %<>%
     filter(site %in% station_analysis$site)
 
@@ -63,6 +64,7 @@ compo_env <- envfit(mynmds, dplyr::select(station_analysis, latitude, longitude,
 
 fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/nmds.png" 
 #debugonce(plot_nmds_envfit)
+source(get_mypath("R", "plot_methods.R"))
 g <- plot_nmds_envfit(mynmds, compo_env,
   arrow_scale = 1.75,
   vec_label_dist = 0.07,
@@ -70,25 +72,6 @@ g <- plot_nmds_envfit(mynmds, compo_env,
   col_fac_label = "red",
 )
 save_plot(filename = fig_nmds_path, plot = g, base_asp = 1)
-
-
-#compo_env
-#https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2
-#fig_nmds_path <- get_mypath("fig", "nmds.png")
-#base_height_nmds <- 1500 
-#png(
-  #fig_nmds_path,
-  #width = base_height_nmds*1.0,
-  #height = base_height_nmds,
-  #res = 300 
-#)
-#plot(mynmds, display = "sites")
-##labels(compo_env)
-#labels_mix <- list(
-  #vectors = c("Lat", "Long", "SpringDist", "Alt"),
-  #factors = c("Acid", "Calc", "Mixed"))
-#plot(compo_env, p.max = 0.05, labels = labels_mix)
-#invisible(dev.off())
 ```
 
 ```{r}
