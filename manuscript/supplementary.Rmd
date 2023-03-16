@@ -1,15 +1,12 @@
 ---
-title: Supplementary material 
+title: Supplementary material
 date: "`r Sys.Date()`"
 bibliography: references.bib
 output:
-  bookdown::html_document2:
-    number_sections: false 
-    fig_caption: true
-    self_contained: true 
+  officedown::rdocx_document
 ---
 
-```{r}
+```{r, echo = FALSE, results = FALSE, collapse = FALSE}
 knitr::opts_chunk$set(
   cache = TRUE,
   collapse = TRUE,
@@ -20,7 +17,7 @@ knitr::opts_chunk$set(
   echo = FALSE,
   message = FALSE,
   warning = FALSE,
-  results = TRUE 
+  results = TRUE
 )
 
 library(tidyverse)
@@ -31,25 +28,136 @@ library(sf)
 library(vegan)
 library(kableExtra)
 library(knitr)
+library(officedown)
 source("../R/misc.R") # Define your custom code as a bunch of functions.
 source_dir(get_mypath("R")) # Define your custom code as a bunch of functions.
 
 #theme_set(theme_cowplot())
 
 ```
+```{r}
 
-# Non Metrics Dimensional Scaling 
+summary_distribution <-
+  function(x = NULL, na.rm = FALSE) {
+
+    quant <- quantile(x, probs = c(0, .25, .5, .75, 1), na.rm = na.rm)
+    names(quant) <- c("min", "1st_quart", "median", "2nd_quart", "max")
+
+    other_desc <- c(
+      mean = mean(x, na.rm = na.rm),
+      sd = sd(x, na.rm = na.rm),
+      n = length(x),
+      n_na = length(x[is.na(x)]),
+      frac_na = length(x[is.na(x)]) / length(x)
+    )
+
+    output <- c(quant, other_desc)
+    return(output)
+}
+
+#' Wrapper over tabyl()
+tabyl_df <- function(x = NULL, group = NULL) {
+
+  gr_sym <- rlang::sym(group)
+
+  x %>%
+    tabyl(!!gr_sym) %>%
+    arrange(desc(n)) %>%
+    adorn_totals("row") %>%
+    adorn_pct_formatting(digits = 1)
+
+}
+```
+
+
+# Environment
+
+```{r}
+myload(richness_env, envir = environment(), dir = get_mypath("data"))
+evt <- richness_env %>%
+  dplyr::select(latitude, longitude, avAltA, upDist, substrat)
+```
+
+```{r}
+substrat_replacement <- c("Ac" = "Acid", calc = "Calcareous", mxt = "Mixed")
+```
+
+```{r}
+substrate_summary <- evt[, "substrat", drop = FALSE] %>%
+  group_by(substrat) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  mutate(
+    type = "Type of substrate",
+    percent = scales::percent(n / sum(n), accuracy = .01),
+    substrat = substrat_replacement[substrat]
+    ) %>%
+  arrange(desc(n)) %>%
+  rename(`Substrate` = substrat) %>%
+  rename_with(str_to_sentence)
+```
+
+```{r tab.cap='Substrate of the sites', tab.id='mtcars', first_column = TRUE}
+substrate_summary %>%
+  dplyr::select(1, 2, 4)
+```
+
+```{r}
+evt_replacement <- c(
+  latitude = "Latitude (deg.)",
+  longitude = "Longitude (deg.)",
+  avAltA = "Altitude (m)",
+  upDist = "Distance from source (km)"
+)
+```
+
+```{r}
+resp_summary <- evt[, c("latitude", "longitude", "avAltA", "upDist")] %>%
+  mutate(upDist = upDist / 1000) %>%
+  pivot_longer(everything(),
+    names_to = "Environmental variable",
+    values_to = "values") %>%
+  group_by(`Environmental variable`) %>%
+  summarise(summ = list(enframe(summary_distribution(values, na.rm = TRUE)))) %>%
+  unnest(summ) %>%
+  pivot_wider(names_from = "name", values_from = "value") %>%
+  mutate(
+    median = format(round(median, 2), nsmall = 2),
+    `Median (Q1, Q3)` = paste0(median, " (",
+      format(round(`1st_quart`, 2), nsmall = 2), ",",
+      format(round(`2nd_quart`, 2), nsmall = 2),
+      ")"),
+    `(Min, Max)` = paste0("(",
+      format(round(min, 2), nsmall = 2),
+      ",",
+      format(round(max, 2), nsmall = 2),
+      ")")
+  ) %>%
+  dplyr::select(`Environmental variable`, N = n, `Median (Q1, Q3)`, `(Min, Max)`) %>%
+  mutate(
+    `Environmental variable` = evt_replacement[`Environmental variable`]
+  )
+```
+
+```{r tab.cap='Summary distribution of the environmental variables', tab.id='resp', first_column = TRUE}
+resp_summary
+```
+
+
+
+# Non Metrics Dimensional Scaling
 
 ```{r stress, fig.cap = "Stress plot for the NMDS analysis."}
 myload(mynmds, envir = environment(), dir = get_mypath("data"))
 
-fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/stress-nmds.png" 
-base_height_nmds <- 1500 
+#fig_nmds_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/stress-nmds.png"
+fig_nmds_path <- get_mypath("fig", "stress-nmds.png")
+
+base_height_nmds <- 1500
 png(
   fig_nmds_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 vegan::stressplot(mynmds)
 title(main = paste0("Stress = ", round(mynmds$stress, 2)))
@@ -74,20 +182,20 @@ knea <- knearneigh(coordinates(sp_station), k = 2, longlat = FALSE)
 neib <- knn2nb(knea)
 
 
-fig_neigh_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/site_neigh.png" 
-base_height_nmds <- 1500 
+#fig_neigh_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/site_neigh.png"
+fig_neigh_path <- get_mypath("fig", "site_neigh.png")
+base_height_nmds <- 1500
 png(
   fig_neigh_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 
 plot(st_geometry(st_transform(region_polygon, crs = 2154)))
 plot(neib, coordinates(sp_station), add = TRUE)
 title(main="K nearest neighbours, k = 2")
 invisible(dev.off())
-
 ```
 
 ```{r, fig.cap="Sites considered with their two nearest neighbors."}
@@ -101,13 +209,14 @@ ww <- nb2listw(neib, style='B')
 moran <- moran.mc(sp_station$richness, ww, nsim=200, na.action = na.omit)
 test <- moran(sp_station$richness, ww, length(neib), Szero(ww))
 
-fig_moran_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/moran_plot.png" 
-base_height_nmds <- 1500 
+#fig_moran_path <- "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/moran_plot.png"
+fig_moran_path <- get_mypath("fig", "moran_plot.png")
+base_height_nmds <- 1500
 png(
   fig_moran_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 moran.plot(sp_station$richness, ww, xlab = "Species richness", ylab = "Spatially lagged species richness" )
 
@@ -118,7 +227,7 @@ invisible(dev.off())
 ggdraw() + draw_image(image = fig_moran_path)
 ```
 
-## Linear model validity check 
+## Linear model validity check
 
 ```{r}
 myload(model.base, model.1, envir = environment(), dir = get_mypath("data"))
@@ -131,33 +240,39 @@ lm_vif <- car::vif(model.1) %>%
   rownames_to_column(var = "Term") %>%
   mutate(Term = str_replace_all(Term, get_replace_tab()))
 
-kable(lm_vif,
-  caption = "Generalized variance inflation factor corresponding the
-  linear model formulated for species richness") %>%
-  kable_styling(c("striped", "hover"))
+#kable(lm_vif,
+#  caption = "Generalized variance inflation factor corresponding the
+#  linear model formulated for species richness") %>%
+#  kable_styling(c("striped", "hover"))
+```
+
+```{r tab.cap="Generalized variance inflation factor corresponding the linear model formulated for species richness", tab.id='iris', no_hband = TRUE, first_column = FALSE}
+lm_vif
 ```
 
 ```{r}
-fig_vario_no_sp_path <-
-  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_no_spatial.png" 
-base_height_nmds <- 1500 
+#fig_vario_no_sp_path <-
+#  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_no_spatial.png"
+fig_vario_no_sp_path <- get_mypath("fig", "vario_no_spatial.png")
+base_height_nmds <- 1500
 png(
   fig_vario_no_sp_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 plot(Variogram(model.base), main = "Model with no spatial Structure")
 invisible(dev.off())
 
-fig_vario_sp_path <-
-  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_spatial.png" 
-base_height_nmds <- 1500 
+#fig_vario_sp_path <-
+#  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/vario_spatial.png"
+fig_vario_sp_path <- get_mypath("fig", "vario_spatial.png")
+base_height_nmds <- 1500
 png(
   fig_vario_sp_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 plot(Variogram(model.1), main = "Model with spatial Structure")
 invisible(dev.off())
@@ -172,14 +287,15 @@ plot_grid(p0, p1, labels = "AUTO")
 ```
 
 ```{r}
-fig_resid_path <-
-  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/resid_richness_model.png" 
+#fig_resid_path <-
+#  "~/Dropbox/_0_MollEcol_2/_Review/Figures/supplementary_fig/resid_richness_model.png"
+fig_resid_path <- get_mypath("fig", "resid_richness_model.png")
 base_height_nmds <- 1500
 png(
   fig_resid_path,
   width = base_height_nmds*1.0,
   height = base_height_nmds,
-  res = 300 
+  res = 300
 )
 plot(y = residuals(model.1), x = predict(model.1), ylab = "Model residuals", xlab = "Prediction of the model")
 invisible(dev.off())
@@ -192,5 +308,3 @@ values."
 ```{r, fig.cap=resid_cap}
 ggdraw() + draw_image(image = fig_resid_path)
 ```
-
-# Co-occurence analysis
